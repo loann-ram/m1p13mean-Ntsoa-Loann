@@ -14,13 +14,9 @@ mongoose.connect(process.env.MONGO_URI)
         console.log(error);})
 
 // Routes
-<<<<<<< Updated upstream
-app.use("/articles", require("./route/routes"));
-=======
 app.use("/LocaleCM", require("./routes/LocaleRoute"));
 app.use("/VisiteurCM", require("./routes/visiteRoutes"));
 app.use("/ReservationCM", require("./routes/ReservationLocalRoute"));
->>>>>>> Stashed changes
 app.listen(PORT, () => console.log(`Serveur démarré sur le port 
 ${PORT}`));
 

@@ -2,8 +2,9 @@ const express = require('express');
 const router = express.Router();
 const Local = require('../model/Local');
 const Resa = require('../model/ReservationLocal');
+const Visite = require("../model/Visite");
 // Créer reservation
-router.post('/add-reservation ', async (req, res) => {
+router.post('/add-reservation', async (req, res) => {
     try {
         const resa = new Resa(req.body);
         await resa.save();
@@ -15,10 +16,10 @@ router.post('/add-reservation ', async (req, res) => {
     }
 });
 // Update reservation
-router.get('/:idResa', async (req, res) => {
+router.put('/Update-resa/:idResa', async (req, res) => {
     try {
         const resaFaite  = await Resa.findByIdAndUpdate(req.params.idResa,req.body,{new:true});
-        res.json(locales);
+        res.json(resaFaite);
     }
     catch (error) {
         res.status(500).json({ message: error.message });
