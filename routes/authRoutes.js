@@ -2,7 +2,8 @@ const express    = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const Utilisateur = require('../models/Utilisateur');
+const Utilisateur = require('../model/Utilisateur');
+const Typeclientex = require('../model/TypeClientex');
 
 router.post('/inscription', async (req, res) => {
     try {
@@ -18,7 +19,7 @@ router.post('/inscription', async (req, res) => {
                 return res.status(400).json({ message: 'Le type de client est requis pour une boutique' });
             }
 
-            const typeClientExist = await TypeClient.findById(typeClient);
+            const typeClientExist = await Typeclientex.findById(typeClient);
             if (!typeClientExist) {
                 return res.status(400).json({ message: 'Type de client invalide' });
             }
