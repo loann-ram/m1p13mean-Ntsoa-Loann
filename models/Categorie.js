@@ -1,11 +1,11 @@
 const mongoose = require('mongoose');
 
 const CategorieSchema = new mongoose.Schema({
-    categorie:{
+    nom: {
         type: String,
         required: true,
         unique: true
     }
 });
 
-module.exports = mongoose.model("Categorie",CategorieSchema);
+module.exports = mongoose.model('Categorie', CategorieSchema);

@@ -1,63 +1,80 @@
-const express = require('express');
+const express    = require('express');
 const router = express.Router();
-const User = require('../models/User');
-const bcrypt   = require('bcryptjs');
+const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const Utilisateur = require('../models/Utilisateur');
 
-router.post('/register', async (req, res) => {
-    try{
-        const {email, mdp, role} = req.body;
+router.post('/inscription', async (req, res) => {
+    try {
+        const { email, mdp, telephone, roles, typeClient } = req.body;
 
-        const userExist = await User.findOne({email});
-        if(userExist){
-            return res.status(400).json({message: 'Email déjà utilisé'});
+        const userExist = await Utilisateur.findOne({ email });
+        if (userExist) {
+            return res.status(400).json({ message: 'Cet email est déjà utilisé' });
         }
-        const salt = await bcrypt.genSalt(10);
-        const mdpHache = await bcrypt.hash(mdp, salt);
 
-        const newUser = new User({
+        if (roles && roles.includes('boutique')) {
+            if (!typeClient) {
+                return res.status(400).json({ message: 'Le type de client est requis pour une boutique' });
+            }
+
+            const typeClientExist = await TypeClient.findById(typeClient);
+            if (!typeClientExist) {
+                return res.status(400).json({ message: 'Type de client invalide' });
+            }
+        }
+
+        const mdpChiffre = await bcrypt.hash(mdp, 10);
+
+        const newUser = new Utilisateur({
             email,
-            mdp: mdpHache,
-            role
+            mdp: mdpChiffre,
+            telephone,
+            roles,
+            typeClient: roles && roles.includes('boutique') ? typeClient : undefined
         });
+
         await newUser.save();
-        res.status(201).json({message: 'Utilisateur créé avec succès'});
-    }catch(err){
-        res.status(500).json({message: err.message});
+        res.status(201).json({ message: 'Inscription réussie' });
+
+    } catch (err) {
+        res.status(500).json({ message: 'Erreur serveur: ', error: err.message });
     }
 });
 
-router.post('/login', async (req, res) => {
-    try {
-        const { email, mdp } = req.body;
+router.post('/connexion', async (req, res) => {
+    try{
+        const {email, mdp} = req.body;
 
-        const user = await User.findOne({ email });
-        if (!user) {
-            return res.status(400).json({ message: "Utilisateur non trouvé, vérifiez votre email" });
+        const userExist = await Utilisateur.findOne({email});
+        if(!userExist){
+            return res.status(400).json({message: 'Email ou mot de passe incorrect'});
         }
-        if (!user.is_actif) {
-            return res.status(403).json({ message: "Compte désactivé" });
-        }
-        const isMatch = await bcrypt.compare(mdp, user.mdp);
-        if (!isMatch) {
-            return res.status(400).json({ message: "Mot de passe incorrect" });
+
+        const mdpValide = await bcrypt.compare(mdp, userExist.mdp);
+        if(!mdpValide){
+            return res.status(400).json({message: 'Email ou mot de passe incorrect'});
         }
 
         const token = jwt.sign(
-            { id: user._id, role: user.role },
+            {id: userExist._id, email: userExist.email, roles: userExist.roles},
             process.env.JWT_SECRET,
-            { expiresIn: "1d" }
+            {expiresIn: '1d'}
         );
 
-        res.json({
-            message: "Connexion réussie",
-            token
+        res.status(200).json({
+            message: 'Utilisateur connecté',
+            token,
+            user: {
+                id: userExist._id,
+                email: userExist.email,
+                roles: userExist.roles
+            },
         });
 
-    } catch (error) {
-        res.status(500).json({ message: error.message });
+    }catch (err) {
+        res.status(500).json({message: 'Erreur serveur: ', error: err.message});
     }
 });
-
 
 module.exports = router;

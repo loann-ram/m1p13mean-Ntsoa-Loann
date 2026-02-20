@@ -3,15 +3,8 @@ const mongoose = require('mongoose');
 const HoraireSchema = new mongoose.Schema({
     jour: {
         type: String,
-        enum: [
-            "Lundi",
-            "Mardi",
-            "Mercredi",
-            "Jeudi",
-            "Vendredi",
-            "Samedi",
-            "Dimanche"
-        ]
+        enum: ["Lundi", "Mardi", "Mercredi", "Jeudi",
+            "Vendredi", "Samedi", "Dimanche"]
     },
     is_open: {
         type: Boolean,
@@ -22,10 +15,16 @@ const HoraireSchema = new mongoose.Schema({
 });
 
 const BoutiqueSchema = new mongoose.Schema({
-    userId: {
+    utilisateurId: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
+        ref: 'Utilisateur',
         required: true
+    },
+    local: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Local',
+        required: true,
+        unique: true
     },
     nom: {
         type: String,
@@ -38,11 +37,22 @@ const BoutiqueSchema = new mongoose.Schema({
         required: true,
         unique: true
     },
+    logo: {
+        type: String
+    },
     categories: [{
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'Categorie',
+        ref: 'Categorie'
     }],
-    horaires: [HoraireSchema]
+    horaires: [HoraireSchema],
+    is_active: {
+        type: Boolean,
+        default: false
+    },
+    inscription: {
+        type: Date,
+        default: Date.now
+    }
 });
 
 module.exports = mongoose.model('Boutique', BoutiqueSchema);
