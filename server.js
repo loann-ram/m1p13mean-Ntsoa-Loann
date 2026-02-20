@@ -15,7 +15,7 @@ mongoose.connect(process.env.MONGO_URI)
 
 // Routes
 app.use("/LocaleCM", require("./routes/LocaleRoute"));
-app.use("/VisiteurCM", require("./routes/visiteRoutes"));
+app.use("/VisiteCM", require("./routes/visiteRoutes"));
 app.use("/ReservationCM", require("./routes/ReservationLocalRoute"));
 app.listen(PORT, () => console.log(`Serveur démarré sur le port 
 ${PORT}`));

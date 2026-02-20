@@ -32,11 +32,13 @@ router.get('/all-visite', async function (req, res) {
     }
 });
 //Afficher les dates de visites disponibles
-router.get('/date-visite-disponibles/:localId/:month/:year', async (req, res) => {
+router.get('/date-visite-disponibles/:localId', async (req, res) => {
   try{
-    const monthOfDate = req.params.month;
-  const yearsOfDate = req.params.year;
-  const debutMois = new Date(yearsOfDate, monthOfDate-1,1);
+      const monthOfDate = req.query.month;
+  const yearsOfDate = req.query.year;
+  const day = req.query.day || 1;
+  //const yearsOfDate = req.query.year;
+  const debutMois = new Date(yearsOfDate, monthOfDate-1,day);
   //console.log("debut de mois"+debutMois);
   const finMois = new Date(yearsOfDate, monthOfDate,0);
     //console.log("fin de mois"+finMois);
@@ -85,7 +87,7 @@ const dateDispThisMonth = [];
 });
 //Creation d'une visite de locale
 // Réserver une visite
-router.post('/Reserved-visit', async (req, res) => {
+router.post('/Reserved-visit/:id_client', async (req, res) => {
     try {
         // Vérifier si le local existe et est disponible
         const localID = await req.body.localeID
@@ -105,7 +107,7 @@ router.post('/Reserved-visit', async (req, res) => {
         // Créer la visite
         const nouvelleVisite = new Visite({
             localeID: req.body.localeID,
-            client: req.body.client,
+            client: req.params.id_client,
             date: req.body.date,
             heure_debut: req.body.heure_debut,
             heure_fin: req.body.heure_fin,

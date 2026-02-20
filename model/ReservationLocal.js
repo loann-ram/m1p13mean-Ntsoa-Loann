@@ -6,14 +6,11 @@ const ReservationLocal = new mongoose.Schema({
     localeID: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Locale',
-        required: true},
-    nom: {
-        type: String,
-        required: true,
+        required: true
     },
-    email:{
-        type: String,
-        required: true,
+    clientId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Client'
     },
     infoLoc:{
         dure:{

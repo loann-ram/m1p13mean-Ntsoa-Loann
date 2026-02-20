@@ -10,6 +10,10 @@ const VisiteSchema = new mongoose.Schema({
         type: Date,
         required: true,
     },
+    clientId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Client'
+    },
     heure_debut:{
         type: String,
         required: true,
@@ -27,20 +31,6 @@ const VisiteSchema = new mongoose.Schema({
             validator: function(value){
                 return /^[0-1][0-9]|2[0-3]$/.test(value);
             },
-        }
-    },
-    client:{
-        nom:{
-            type: String,
-            required: true,
-        },
-        telephone:{
-            type: String,
-            required: true,
-        },
-        email:{
-            type: String,
-            required: true,
         }
     },
     status:{
