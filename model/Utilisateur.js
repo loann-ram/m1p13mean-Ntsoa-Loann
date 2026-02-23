@@ -32,4 +32,5 @@ const UtilisateurSchema = new mongoose.Schema({
     }
 });
 
-module.exports = mongoose.model('Utilisateur',UtilisateurSchema);
+module.exports = mongoose.models.Utilisateur
+    || mongoose.model('Utilisateur', UtilisateurSchema);

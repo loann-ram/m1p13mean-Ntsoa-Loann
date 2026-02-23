@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const Categorie = require('../models/Categorie');
+const Categorie = require('../Model/Categorie');
 const auth = require('../middleware/auth');
 
 

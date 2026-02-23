@@ -12,11 +12,7 @@ const VisiteSchema = new mongoose.Schema({
     },
     clientId: {
         type: mongoose.Schema.Types.ObjectId,
-<<<<<<< Updated upstream
-        ref: 'Client'
-=======
         ref: 'Utilisateur'
->>>>>>> Stashed changes
     },
     heure_debut:{
         type: String,
@@ -40,7 +36,7 @@ const VisiteSchema = new mongoose.Schema({
     status:{
         type: String,
         required: true,
-        enum: ['Confirmée','En cours','Annulée'],
+        enum: ['Confirmée','En cours','Annulée','Terminée'],
         default : 'Confirmée'
     }
 },{ timestamps: true });

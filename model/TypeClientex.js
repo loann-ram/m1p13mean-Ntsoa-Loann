@@ -8,4 +8,4 @@ const TypeClientex = new mongoose.Schema({
     },
 });
 
-module.exports = mongoose.model("TypeClient", TypeClientex);
+module.exports = mongoose.model("TypeClientex", TypeClientex);
