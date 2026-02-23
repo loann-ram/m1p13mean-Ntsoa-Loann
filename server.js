@@ -1,5 +1,6 @@
 const express = require('express');
 const mongoose = require('mongoose');
+const createTypeClient= require('./utils/TypeClient');
 const cors = require('cors');
 const path = require('path');
 const dotenv = require('dotenv');
@@ -19,6 +20,12 @@ mongoose.connect(process.env.MONGO_URI)
         app.use('/auth', require('./routes/authRoutes'));
         app.use('/boutique', require('./routes/boutiqueRoutes'));
         app.use('/categorie', require('./routes/categorieRoutes'));
+        app.use(createTypeClient);
+        app.use("/LocaleCM", require("./routes/LocaleRoute"));
+        app.use("/VisiteCM", require("./routes/visiteRoutes"));
+        app.use("/ReservationCM", require("./routes/ReservationLocalRoute"));
+        app.use('/auth', require('./routes/authRoutes'));
+        app.use('/admin', require('./routes/adminRoutes'));
 
         app.listen(PORT, () => {
             console.log(`Serveur démarré sur le port ${PORT}`);
@@ -27,3 +34,4 @@ mongoose.connect(process.env.MONGO_URI)
     .catch(err => {
         console.error("Erreur de connexion MongoDB:", err.message);
     });
+

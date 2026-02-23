@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const Categorie = require('../models/Categorie');
-const auth = require('../middleware/auth');
+const Categorie = require('../Model/Categorie');
+const auth = require('../middleware/authAdmin');
 
 
 router.get('/listeCategories', async (req, res) => {
@@ -45,7 +45,7 @@ router.post('/creerCategorie', auth, async (req, res) => {
 
 router.put('/modifierCategorie/:id', auth, async (req, res) => {
     try {
-        const nomExistant = await Categorie.findOne({ nom: req.body.nom });
+        const nomExistant = await Categorie.findOne({ nom: req.body.nom , _id: { $ne: req.params.id }});
         if (nomExistant) {
             return res.status(400).json({ message: 'Ce nom de catégorie existe déjà' });
         }
@@ -53,7 +53,7 @@ router.put('/modifierCategorie/:id', auth, async (req, res) => {
         const categorie = await Categorie.findByIdAndUpdate(
             req.params.id,
             { nom: req.body.nom },
-            { new: true, runValidators: true }
+            { returnDocument: 'after', runValidators: true }
         );
 
         if (!categorie) {
