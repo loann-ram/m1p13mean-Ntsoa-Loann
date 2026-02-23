@@ -25,7 +25,7 @@ const UtilisateurSchema = new mongoose.Schema({
     },
     typeClient: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'TypeClient',
+        ref: 'TypeClientex',
         required: function() {
             return this.roles.includes('boutique');
         }

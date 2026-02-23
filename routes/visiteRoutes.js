@@ -34,8 +34,8 @@ router.get('/all-visite', async function (req, res) {
 //Afficher les dates de visites disponibles
 router.get('/date-visite-disponibles/:localId', async (req, res) => {
   try{
-      const monthOfDate = req.query.month;
-  const yearsOfDate = req.query.year;
+      const monthOfDate = req.query.month || new Date().getMonth() + 1;
+  const yearsOfDate = req.query.year || new Date().getFullYear();
   const day = req.query.day || 1;
   //const yearsOfDate = req.query.year;
   const debutMois = new Date(yearsOfDate, monthOfDate-1,day);
@@ -46,20 +46,33 @@ router.get('/date-visite-disponibles/:localId', async (req, res) => {
         '09:00-10:00', '10:00-11:00', '11:00-12:00',
         '14:00-15:00', '15:00-16:00', '16:00-17:00', '17:00-18:00'
     ];
-
+      const APidateferieResp = await fetch(
+          `https://date.nager.at/api/v3/PublicHolidays/${yearsOfDate}/MG`
+      );
+      const joursFerier = await APidateferieResp.json();
+      const joursFerierSet = new Set(joursFerier.map(j => j.date));
     const visiteThisMonth = await Visite.find({
         localeID:req.params.localId,
         date:{$gte: debutMois,$lte: finMois},
         status:{$ne: 'Annulée'}
     })
+      //  Le jour hanombohanle izy zany hoe tsy maka anze talouha tsony fa a partir an ny androany
+      const aujourd_hui = new Date();
+      const jourDepart = (
+          parseInt(yearsOfDate) === aujourd_hui.getFullYear() &&
+          parseInt(monthOfDate) === aujourd_hui.getMonth() + 1
+      ) ? aujourd_hui.getDate() : 1;
 
 const dateDispThisMonth = [];
-    for (let jour = 1; jour <= finMois.getDate(); ++jour) {
+    for (let jour = jourDepart; jour <= finMois.getDate(); ++jour) {
         const date = new Date(yearsOfDate, monthOfDate - 1, jour);
         //console.log(date);
         const dateStr = date.toLocaleDateString('sv-SE');
+        const jourSemaine = date.getDay(); // 0 = dimanche, 6 = samedi
         //console.log(dateStr);
-
+        if (jourSemaine === 0 || jourSemaine === 6 || joursFerierSet.has(dateStr)) {
+            continue;
+        }
         // Visites déjà réservées ce jour
         const visitesJour = visiteThisMonth.filter(v =>
             v.date.toLocaleDateString('sv-SE') === dateStr
@@ -95,6 +108,14 @@ router.post('/Reserved-visit/:id_client', async (req, res) => {
         console.log(localID);
         console.log(local);
         console.log(local.etat_boutique);
+// miantsoa an le route eo ambony hijerevana hoe dispe ve le date choisie
+        const APidatedispResp = await fetch(
+            `http://localhost:5000/VisiteCM/date-visite-disponibles/${localID}`
+        );
+        const dateDisp = await APidatedispResp.json();
+        const dateDispSet = new Set(dateDisp.map(j => j.date));
+
+        const dateRecue = new Date(req.body.date).toLocaleDateString('sv-SE');
 
         if (!local) {
             return res.status(404).json({ message: 'Local non trouvé' });
@@ -102,6 +123,10 @@ router.post('/Reserved-visit/:id_client', async (req, res) => {
 
         if (local.etat_boutique !== 'disponible') {
             return res.status(400).json({ message: 'Ce local n\'est plus disponible' });
+        }
+
+        if (!dateDispSet.has(dateRecue)) {
+            return res.status(400).json({ message: 'C est un jour ferié ou WE' });
         }
 
         // Créer la visite
