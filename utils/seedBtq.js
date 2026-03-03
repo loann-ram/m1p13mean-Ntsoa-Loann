@@ -12,14 +12,14 @@ const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 dotenv.config();
 
-const Utilisateur    = require('../model/Utilisateur');
-const Local          = require('../model/Local');
-const ReservationLocal = require('../model/ReservationLocal');
-const DemandeClient  = require('../model/DemandeClient');
-const ReponseDemande = require('../model/ResponseDm');
-const Boutique       = require('../model/Boutique');
-const Categorie      = require('../model/Categorie');
-const Produit        = require('../model/Produit');
+const Utilisateur    = require('../Model/Utilisateur');
+const Local          = require('../Model/Local');
+const ReservationLocal = require('../Model/ReservationLocal');
+const DemandeClient  = require('../Model/DemandeClient');
+const ReponseDemande = require('../Model/ResponseDm');
+const Boutique       = require('../Model/Boutique');
+const Categorie      = require('../Model/Categorie');
+const Produit        = require('../Model/Produit');
 
 async function seed() {
     try {
@@ -35,7 +35,7 @@ async function seed() {
             .lean();
 
         if (!reponse) {
-            console.error('❌ Aucune demande acceptée trouvée. Valide d\'abord une demande.');
+            console.error(' Aucune demande acceptée trouvée. Valide d\'abord une demande.');
             process.exit(1);
         }
 
@@ -54,7 +54,7 @@ async function seed() {
         }
 
         const local = reservation.localeID;
-        console.log(`✅ Local trouvé : ${local.nom_boutique} (${local.emplacement})`);
+        console.log(` Local trouvé : ${local.nom_boutique} (${local.emplacement})`);
 
         // ── ÉTAPE 3 : Créer les catégories ────────────────────────────────────
         let categorie = await Categorie.findOne({ nom: 'Vêtements' });
@@ -67,9 +67,9 @@ async function seed() {
                     { nom: 'Enfant' }
                 ]
             });
-            console.log('✅ Catégorie "Vêtements" créée');
+            console.log(' Catégorie "Vêtements" créée');
         } else {
-            console.log('ℹ️  Catégorie "Vêtements" déjà existante');
+            console.log(' Catégorie "Vêtements" déjà existante');
         }
 
         let categorie2 = await Categorie.findOne({ nom: 'Accessoires' });
@@ -82,12 +82,10 @@ async function seed() {
                     { nom: 'Chaussures' }
                 ]
             });
-            console.log('✅ Catégorie "Accessoires" créée');
+            console.log('Catégorie "Accessoires" créée');
         } else {
-            console.log('ℹ️  Catégorie "Accessoires" déjà existante');
+            console.log('  Catégorie "Accessoires" déjà existante');
         }
-
-        // ── ÉTAPE 4 : Créer la boutique ───────────────────────────────────────
         let boutique = await Boutique.findOne({ local: local._id, is_active: true });
         if (!boutique) {
             boutique = await Boutique.create({
@@ -109,12 +107,10 @@ async function seed() {
                 ],
                 is_active: true
             });
-            console.log(`✅ Boutique créée : ${boutique.nom} (ID: ${boutique._id})`);
+            console.log('Boutique créée : ${boutique.nom} (ID: ${boutique._id})`);
         } else {
-            console.log(`ℹ️  Boutique déjà existante : ${boutique.nom}`);
+            console.log(' Boutique déjà existante : ${boutique.nom}`);
         }
-
-        // ── ÉTAPE 5 : Créer des produits ─────────────────────────────────────
         const produitsExistants = await Produit.countDocuments({ boutiqueId: boutique._id });
 
         if (produitsExistants > 0) {
