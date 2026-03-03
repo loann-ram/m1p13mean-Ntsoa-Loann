@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const Local = require('../model/Local');
-const Resa = require('../model/ReservationLocal');
-const Visite = require("../model/Visite");
+const Local = require('../Model/Local');
+const Resa = require('../Model/ReservationLocal');
+const Visite = require("../Model/Visite");
 const auth = require("../middleware/auth");
 
 // Créer reservation
