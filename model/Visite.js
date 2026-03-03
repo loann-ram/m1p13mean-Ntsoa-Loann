@@ -4,7 +4,7 @@ const mongoose = require('mongoose');
 const VisiteSchema = new mongoose.Schema({
     localeID: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'Locale',
+        ref: 'Local',
         required: true},
     date: {
         type: Date,
@@ -12,11 +12,8 @@ const VisiteSchema = new mongoose.Schema({
     },
     clientId: {
         type: mongoose.Schema.Types.ObjectId,
-<<<<<<< Updated upstream
-        ref: 'Client'
-=======
-        ref: 'Utilisateur'
->>>>>>> Stashed changes
+        ref: 'Utilisateur',
+        required: true
     },
     heure_debut:{
         type: String,
@@ -37,11 +34,11 @@ const VisiteSchema = new mongoose.Schema({
             },
         }
     },
-    status:{
+    statut:{
         type: String,
         required: true,
-        enum: ['Confirmée','En cours','Annulée'],
-        default : 'Confirmée'
+        enum: ['Confirmée','En cours','Annulée','Terminée','en attente de confirmation'],
+        default : 'en attente de confirmation'
     }
 },{ timestamps: true });
 module.exports = mongoose.model('Visite', VisiteSchema);

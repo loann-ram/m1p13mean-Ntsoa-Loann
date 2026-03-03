@@ -1,18 +1,17 @@
 const TypeClient = require('../model/TypeClientex');
 
-async function createTypeClient(req, res, next) {
+async function createTypeClient() {
     try {
         const count = await TypeClient.countDocuments();
         if (count === 0) {
-
             await TypeClient.create({ typeClientex: "INDIVIDU" });
             await TypeClient.create({ typeClientex: "SOCIETE" });
             console.log("TypeClient initialisés !");
+        } else {
+            console.log("TypeClient déjà initialisés.");
         }
-        next();
     } catch (err) {
         console.error("Erreur initTypeClient :", err);
-        next(err);
     }
 }
 

@@ -2,15 +2,15 @@ const mongoose = require('mongoose');
 
 const DossierRequire = new mongoose.Schema({
 
-    typeClient: {
+    typeClientex: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'TypeClient',
+        ref: 'TypeClientex',
         unique: true
     },
 
     typeDocument:[ {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'TypeDocument'
+        ref: 'TypeDossier'
     }
     ],
 
@@ -21,4 +21,4 @@ const DossierRequire = new mongoose.Schema({
 
 }, { timestamps: true });
 
-module.exports = mongoose.model('DossierRequirement', DossierRequire);
+module.exports = mongoose.model('DossierRequire', DossierRequire);

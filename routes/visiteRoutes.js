@@ -2,17 +2,25 @@ const express = require('express');
 const router = express.Router();
 const Visite = require('../model/Visite');
 const Local = require('../model/Local');
-//Afficher all visite
+const { creerNotification } = require('../utils/notification');
+
+const getDatesDispo = require('../utils/getDateDisp');
+const auth = require("../middleware/auth");
 router.get('/all-visite', async function (req, res) {
-    const AllVisite = await Visite.find();
-    res.json(AllVisite);
+    try {
+        const AllVisite = await Visite.find()
+            .populate('clientId', 'nom prenom email')
+            .populate('localeID', 'nom_boutique');
+        res.json(AllVisite);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
 });
-//Afficher all visite pour un local donnée
 router.get('/visite-local/:localId', async function (req, res) {
     try {
         const visites = await Visite.find({
             local_id: req.params.localId,
-            status: { $ne: 'Annulée' }  // Exclure les annulées
+            status: { $ne: 'Annulée' } 
         }).sort({ date: 1, heure_debut: 1 });
 
         res.json(visites);
@@ -20,102 +28,36 @@ router.get('/visite-local/:localId', async function (req, res) {
         res.status(500).json({ message: error.message });
     }
 });
-//Afficher all visite non annulé
-router.get('/all-visite', async function (req, res) {
+router.get('/all-visite-non-annule', async function (req, res) {
     try{
     const visites = await Visite.find({
-        status: { $ne: 'Annulée' }  // Exclure les annulées
+        status: { $ne: 'Annulée' }
     });
     res.json(visites);
     }catch(error){
         res.status(500).json({ message: error.message });
     }
 });
-//Afficher les dates de visites disponibles
 router.get('/date-visite-disponibles/:localId', async (req, res) => {
-  try{
-      const monthOfDate = req.query.month || new Date().getMonth() + 1;
-  const yearsOfDate = req.query.year || new Date().getFullYear();
-  const day = req.query.day || 1;
-  //const yearsOfDate = req.query.year;
-  const debutMois = new Date(yearsOfDate, monthOfDate-1,day);
-  //console.log("debut de mois"+debutMois);
-  const finMois = new Date(yearsOfDate, monthOfDate,0);
-    //console.log("fin de mois"+finMois);
-    const creneauxPossibles = [
-        '09:00-10:00', '10:00-11:00', '11:00-12:00',
-        '14:00-15:00', '15:00-16:00', '16:00-17:00', '17:00-18:00'
-    ];
-      const APidateferieResp = await fetch(
-          `https://date.nager.at/api/v3/PublicHolidays/${yearsOfDate}/MG`
-      );
-      const joursFerier = await APidateferieResp.json();
-      const joursFerierSet = new Set(joursFerier.map(j => j.date));
-    const visiteThisMonth = await Visite.find({
-        localeID:req.params.localId,
-        date:{$gte: debutMois,$lte: finMois},
-        status:{$ne: 'Annulée'}
-    })
-      //  Le jour hanombohanle izy zany hoe tsy maka anze talouha tsony fa a partir an ny androany
-      const aujourd_hui = new Date();
-      const jourDepart = (
-          parseInt(yearsOfDate) === aujourd_hui.getFullYear() &&
-          parseInt(monthOfDate) === aujourd_hui.getMonth() + 1
-      ) ? aujourd_hui.getDate() : 1;
-
-const dateDispThisMonth = [];
-    for (let jour = jourDepart; jour <= finMois.getDate(); ++jour) {
-        const date = new Date(yearsOfDate, monthOfDate - 1, jour);
-        //console.log(date);
-        const dateStr = date.toLocaleDateString('sv-SE');
-        const jourSemaine = date.getDay(); // 0 = dimanche, 6 = samedi
-        //console.log(dateStr);
-        if (jourSemaine === 0 || jourSemaine === 6 || joursFerierSet.has(dateStr)) {
-            continue;
-        }
-        // Visites déjà réservées ce jour
-        const visitesJour = visiteThisMonth.filter(v =>
-            v.date.toLocaleDateString('sv-SE') === dateStr
-        );
-        // Trouver les créneaux disponibles
-        const creneauxDisponibles = creneauxPossibles.filter(creneau => {
-            const [heureDebut] = creneau.split('-');
-            const heureSimple = heureDebut.split(':')[0];
-            return !visitesJour.some(v => v.heure_debut === heureSimple);
-        });
-        if (creneauxDisponibles.length > 0) {
-            dateDispThisMonth.push({
-                date: dateStr,
-                creneaux_disponibles: creneauxDisponibles
-            });
-        }
-    }
-
-    res.json(dateDispThisMonth);
-
-} catch (error) {
-      res.status(500).json({ message: error.message });
-
-  }
-});
-//Creation d'une visite de locale
-// Réserver une visite
-router.post('/Reserved-visit/:id_client', async (req, res) => {
     try {
-        // Vérifier si le local existe et est disponible
-        const localID = await req.body.localeID
-        const local = await Local.findById(localID)
-        console.log(localID);
-        console.log(local);
-        console.log(local.etat_boutique);
-// miantsoa an le route eo ambony hijerevana hoe dispe ve le date choisie
-        const APidatedispResp = await fetch(
-            `http://localhost:5000/VisiteCM/date-visite-disponibles/${localID}`
+        const dateDisp = await getDatesDispo(
+            req.params.localId,
+            req.query.month,
+            req.query.year,
+            req.query.day
         );
-        const dateDisp = await APidatedispResp.json();
-        const dateDispSet = new Set(dateDisp.map(j => j.date));
+        console.log( req.query.month,req.query.year,req.query.day);
+        res.json(dateDisp);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+router.post('/Reserved-visit',auth, async (req, res) => {
+    try {
+        const localID = req.body.localeID;
+        const local = await Local.findById(localID);
+        console.log("IdClient dia ty",req.user.id);
 
-        const dateRecue = new Date(req.body.date).toLocaleDateString('sv-SE');
 
         if (!local) {
             return res.status(404).json({ message: 'Local non trouvé' });
@@ -124,15 +66,28 @@ router.post('/Reserved-visit/:id_client', async (req, res) => {
         if (local.etat_boutique !== 'disponible') {
             return res.status(400).json({ message: 'Ce local n\'est plus disponible' });
         }
+        const dateRecue = new Date(req.body.date);
+        const month = dateRecue.getMonth() + 1;
+        const year = dateRecue.getFullYear();
+        const day = dateRecue.getDate();
+        const dateDisp = await getDatesDispo(localID, month, year, day);
 
-        if (!dateDispSet.has(dateRecue)) {
-            return res.status(400).json({ message: 'C est un jour ferié ou WE' });
+        const dateDispSet = new Set(dateDisp.map(j => j.date));
+        const dateStr = dateRecue.toLocaleDateString('sv-SE');
+
+        if (!dateDispSet.has(dateStr)) {
+            return res.status(400).json({ message: 'Date non disponible (jour férié, week-end, ou créneaux complets)' });
+        }
+        const jourDispo = dateDisp.find(j => j.date === dateStr);
+        const creneauDemande = `${String(req.body.heure_debut).padStart(2,'0')}:00-${String(req.body.heure_fin).padStart(2,'0')}:00`;
+
+        if (!jourDispo.creneaux_disponibles.includes(creneauDemande)) {
+            return res.status(400).json({ message: 'Ce créneau est déjà réservé' });
         }
 
-        // Créer la visite
         const nouvelleVisite = new Visite({
             localeID: req.body.localeID,
-            client: req.params.id_client,
+            clientId: req.user.id,
             date: req.body.date,
             heure_debut: req.body.heure_debut,
             heure_fin: req.body.heure_fin,
@@ -145,8 +100,6 @@ router.post('/Reserved-visit/:id_client', async (req, res) => {
         res.status(400).json({ message: error.message });
     }
 });
-
-// Annuler une visite
 router.patch('/:id/annuler', async (req, res) => {
     try {
         const visite = await Visite.findByIdAndUpdate(
@@ -162,6 +115,114 @@ router.patch('/:id/annuler', async (req, res) => {
         res.json(visite);
     } catch (error) {
         res.status(400).json({ message: error.message });
+    }
+});
+router.patch('/:id/decision', async (req, res) => {
+    try {
+        const { statut, nouvelleDate, nouvelleHeureDebut, nouvelleHeureFin, motif } = req.body;
+
+        const statutsAutorises = ['Validée', 'Refusée', 'Reportée'];
+        if (!statutsAutorises.includes(statut)) {
+            return res.status(400).json({
+                message: `Statut invalide. Valeurs acceptées : ${statutsAutorises.join(', ')}`
+            });
+        }
+        const visite = await Visite.findById(req.params.id)
+            .populate('clientId', 'email _id')
+            .populate('localeID', 'nom_boutique');
+
+        if (!visite) {
+            return res.status(404).json({ message: 'Visite non trouvée' });
+        }
+        const miseAJour = { statut };
+
+        if (statut === 'Reportée') {
+            if (!nouvelleDate || !nouvelleHeureDebut || !nouvelleHeureFin) {
+                return res.status(400).json({
+                    message: 'Pour reporter une visite, vous devez fournir : nouvelleDate, nouvelleHeureDebut, nouvelleHeureFin'
+                });
+            }
+            miseAJour.date        = nouvelleDate;
+            miseAJour.heure_debut = nouvelleHeureDebut;
+            miseAJour.heure_fin   = nouvelleHeureFin;
+        }
+
+        const visiteMiseAJour = await Visite.findByIdAndUpdate(
+            req.params.id,
+            miseAJour,
+            { returnDocument: 'after' }
+        );
+        const clientId    = visite.clientId?._id;
+        const nomBoutique = visite.localeID?.nom_boutique || 'votre local';
+        const dateVisite  = new Date(visite.date).toLocaleDateString('fr-FR');
+
+        let titreClient, messageClient;
+        let titreAdmin,  messageAdmin;
+        switch (statut) {
+
+            case 'Validée':
+                titreClient  = 'Visite confirmée';
+                messageClient = `Votre visite du ${dateVisite} pour le local "${nomBoutique}" a été validée.`
+                    + (motif ? ` — ${motif}` : '')
+                    + ' Merci de vous présenter à l\'heure prévue.';
+
+                titreAdmin   = 'Visite validée';
+                messageAdmin  = `La visite du ${dateVisite} pour le local "${nomBoutique}" a été confirmée au client.`;
+                break;
+
+            case 'Refusée':
+                titreClient  = 'Visite refusée';
+                messageClient = `Votre demande de visite du ${dateVisite} pour le local "${nomBoutique}" a été refusée.`
+                    + (motif ? ` Motif : ${motif}` : ' Aucun motif précisé.');
+
+                titreAdmin   = 'Visite refusée';
+                messageAdmin  = `La visite du ${dateVisite} pour le local "${nomBoutique}" a été refusée.`
+                    + (motif ? ` Motif enregistré : ${motif}` : '');
+                break;
+
+            case 'Reportée': {
+                const nouvelleDateFormatee = new Date(nouvelleDate).toLocaleDateString('fr-FR');
+                titreClient  = 'Visite reportée';
+                messageClient = `Votre visite prévue le ${dateVisite} pour le local "${nomBoutique}" a été reportée au ${nouvelleDateFormatee}`
+                    + ` de ${String(nouvelleHeureDebut).padStart(2,'0')}h00 à ${String(nouvelleHeureFin).padStart(2,'0')}h00.`
+                    + (motif ? ` Motif : ${motif}` : '');
+
+                titreAdmin   = 'Visite reportée';
+                messageAdmin  = `La visite du ${dateVisite} pour le local "${nomBoutique}" a été reportée au ${nouvelleDateFormatee}.`;
+                break;
+            }
+        }
+        if (clientId) {
+            await creerNotification(
+                clientId,
+                titreClient,
+                messageClient,
+                statut === 'Validée' ? 'paiement' : statut === 'Refusée' ? 'retard' : 'info',
+                '/mes-visites'
+            );
+        }
+
+        const Utilisateur = require('../model/Utilisateur');
+        const admins = await Utilisateur.find().select('_id').lean();
+
+        for (const admin of admins) {
+            await creerNotification(
+                admin._id,
+                titreAdmin,
+                messageAdmin,
+                'info',
+                `/admin/visites/${req.params.id}`
+            );
+        }
+
+        res.json({
+            message: `Visite ${statut.toLowerCase()} avec succès. Notifications envoyées.`,
+            visite: visiteMiseAJour
+        });
+
+    } catch (error) {
+        console.error('[VISITE] Erreur décision :', error.message);
+        res.status(500).json({ message: error.message });
     }
 });
 module.exports = router;
