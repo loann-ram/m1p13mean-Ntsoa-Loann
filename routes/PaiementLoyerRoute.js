@@ -3,11 +3,11 @@ const router = express.Router();
 const { getIO } = require('../utils/socket');
 const { createUpload, cloudinary, extractPublicId } = require('../config/cloudinary');
 
-const PaiementLoyer = require('../model/PaiementLoyer');
-const ReservationLocal = require('../model/ReservationLocal');
-const Notification = require('../model/Notification');
-const Local = require('../model/Local');
-const Utilisateur = require('../model/Utilisateur');
+const PaiementLoyer = require('../Model/PaiementLoyer');
+const ReservationLocal = require('../Model/ReservationLocal');
+const Notification = require('../Model/Notification');
+const Local = require('../Model/Local');
+const Utilisateur = require('../Model/Utilisateur');
 const auth = require("../middleware/auth");
 
 // ─────────────────────────────────────────────
