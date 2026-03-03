@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const Local = require('../model/Local');
+const Local = require('../Model/Local');
 const { createUpload, getOptimizedUrl, getThumbnailUrl, extractPublicId, cloudinary } = require('../config/cloudinary');
 
 const upload = createUpload({ folder: 'locaux', maxSizeMB: 5 });
