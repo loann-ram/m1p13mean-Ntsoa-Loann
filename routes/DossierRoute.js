@@ -1,12 +1,12 @@
 const express = require('express');
 const router = express.Router();
-const Local = require('../model/Local');
-const ReservationLocal = require('../model/ReservationLocal');
-const Utilisateur = require('../model/Utilisateur');
-const DossierRequire = require('../model/DossierRequire'); // ✅ nom correct
-const Dossier = require('../model/Dossier');
-const TypeDossier = require('../model/TypeDossier');
-const DemandeClient = require('../model/DemandeClient');
+const Local = require('../Model/Local');
+const ReservationLocal = require('../Model/ReservationLocal');
+const Utilisateur = require('../Model/Utilisateur');
+const DossierRequire = require('../Model/DossierRequire'); // ✅ nom correct
+const Dossier = require('../Model/Dossier');
+const TypeDossier = require('../Model/TypeDossier');
+const DemandeClient = require('../Model/DemandeClient');
 const { creerNotification } = require('../utils/notification');
 const { createUpload, cloudinary, extractPublicId } = require('../config/cloudinary');
 
