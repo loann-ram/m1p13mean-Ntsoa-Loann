@@ -1,34 +1,22 @@
-// routes/stats.routes.js
-// ⚠️  CE FICHIER DOIT S'APPELER : StatRoute.js
-// ⚠️  Et être monté dans server.js comme :
-//     app.use('/Statistique', auth, require('./routes/StatRoute'));
-// La route principale est GET /Statistique  (pas /stats)
+
 const express = require('express');
 const router  = express.Router();
 
-const Local            = require('../model/Local');
-const Visite           = require('../model/Visite');
-const ReservationLocal = require('../model/ReservationLocal');
-const DemandeClient    = require('../model/DemandeClient');
-const PaiementLoyer    = require('../model/PaiementLoyer');
-const PaiementCommande = require('../model/PaiementCommande');
-const Commande         = require('../model/Commande');
-const Utilisateur      = require('../model/Utilisateur');
-const ReponseDemande   = require('../model/ResponseDm');
+const Local            = require('../Model/Local');
+const Visite           = require('../Model/Visite');
+const ReservationLocal = require('../Model/ReservationLocal');
+const DemandeClient    = require('../Model/DemandeClient');
+const PaiementLoyer    = require('../Model/PaiementLoyer');
+const PaiementCommande = require('../Model/PaiementCommande');
+const Commande         = require('../Model/Commande');
+const Utilisateur      = require('../Model/Utilisateur');
+const ReponseDemande   = require('../Model/ResponseDm');
 const auth = require("../middleware/auth");
-
-// ─────────────────────────────────────────────────────────────────────────────
-// HELPER — parse Decimal128 en nombre JS
-// ─────────────────────────────────────────────────────────────────────────────
 const toNum = (v) => {
     if (!v) return 0;
     if (typeof v === 'object' && v.$numberDecimal) return parseFloat(v.$numberDecimal);
     return parseFloat(v) || 0;
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// HELPER — 12 derniers mois sous forme ['2024-08', ..., '2025-07']
-// ─────────────────────────────────────────────────────────────────────────────
 const getLast12Months = () => {
     const months = [];
     const now = new Date();
@@ -38,12 +26,6 @@ const getLast12Months = () => {
     }
     return months;
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// GET /api/stats
-// Retourne toutes les statistiques en une seule requête
-// Structure : { kpis, finances, locaux, visites }
-// ─────────────────────────────────────────────────────────────────────────────
 router.get('/',auth, async (req, res) => {
     try {
         const now        = new Date();
@@ -52,55 +34,34 @@ router.get('/',auth, async (req, res) => {
         const debutAnnee = new Date(now.getFullYear(), 0, 1);
         const last12     = getLast12Months();
         const debut12    = new Date(now.getFullYear(), now.getMonth() - 11, 1);
-
-        // ════════════════════════════════════════════════════════════════════
-        // Toutes les requêtes en parallèle pour la performance
-        // ════════════════════════════════════════════════════════════════════
         const [
-            // ── LOCAUX
-            allLocaux,
 
-            // ── CLIENTS
+            allLocaux,
             totalClients,
             nouveauxClientsMois,
             clientsParType,
-
-            // ── VISITES
             visitesParStatut,
             visitesMensuelles,
             visitesParHeure,
             visitesParLocal,
-
-            // ── DEMANDES
             demandesParStatut,
-
-            // ── RÉSERVATIONS
             reservationsParStatut,
-
-            // ── PAIEMENTS LOYERS
             loyersMensuelsBrut,
             loyersParStatut,
             loyersEnRetard,
             totalLoyersDus,
             totalLoyersPaies,
             loyersParMode,
-
-            // ── COMMANDES
             commandesParStatut,
             commandesMensuelles,
             totalCommandesMontant,
             commandesParMode,
-
-            // ── PREUVES EN ATTENTE
             preuvesCmdenAttente,
             preuvesCmLoyerAttente,
 
         ] = await Promise.all([
-
-            // ── LOCAUX
             Local.find().lean(),
 
-            // ── CLIENTS
             Utilisateur.countDocuments({ roles: { $in: ['acheteur', 'boutique'] } }),
             Utilisateur.countDocuments({ inscription: { $gte: debutMois } }),
             Utilisateur.aggregate([
@@ -109,12 +70,9 @@ router.get('/',auth, async (req, res) => {
                 { $group: { _id: '$roles', count: { $sum: 1 } } }
             ]),
 
-            // ── VISITES par statut
             Visite.aggregate([
                 { $group: { _id: '$statut', count: { $sum: 1 } } }
             ]),
-
-            // ── VISITES mensuelles (12 derniers mois)
             Visite.aggregate([
                 { $match: { createdAt: { $gte: debut12 } } },
                 { $group: {
@@ -127,13 +85,10 @@ router.get('/',auth, async (req, res) => {
                 { $sort: { '_id.year': 1, '_id.month': 1 } }
             ]),
 
-            // ── VISITES par créneau horaire
             Visite.aggregate([
                 { $group: { _id: '$heure_debut', count: { $sum: 1 } } },
                 { $sort: { '_id': 1 } }
             ]),
-
-            // ── VISITES par local (top 5)
             Visite.aggregate([
                 { $group: { _id: '$localeID', count: { $sum: 1 } } },
                 { $sort: { count: -1 } },
@@ -142,18 +97,12 @@ router.get('/',auth, async (req, res) => {
                 { $unwind: { path: '$local', preserveNullAndEmptyArrays: true } },
                 { $project: { nom: '$local.nom_boutique', count: 1 } }
             ]),
-
-            // ── DEMANDES par statut
             DemandeClient.aggregate([
                 { $group: { _id: '$statusDm', count: { $sum: 1 } } }
             ]),
-
-            // ── RÉSERVATIONS par statut
             ReservationLocal.aggregate([
                 { $group: { _id: '$status', count: { $sum: 1 } } }
             ]),
-
-            // ── LOYERS mensuels (12 mois) — montants
             PaiementLoyer.aggregate([
                 { $match: {
                         moisConcerne: { $in: last12 },
@@ -166,37 +115,23 @@ router.get('/',auth, async (req, res) => {
                     }},
                 { $sort: { _id: 1 } }
             ]),
-
-            // ── LOYERS par statut
             PaiementLoyer.aggregate([
                 { $group: { _id: '$statut', count: { $sum: 1 }, total: { $sum: '$montantDu' } } }
             ]),
-
-            // ── LOYERS en retard (liste)
             PaiementLoyer.countDocuments({ statut: { $in: ['en retard', 'impaye'] } }),
-
-            // ── Total loyers dus (tous)
             PaiementLoyer.aggregate([
                 { $group: { _id: null, total: { $sum: '$montantDu' } } }
             ]),
-
-            // ── Total loyers payés
             PaiementLoyer.aggregate([
                 { $group: { _id: null, total: { $sum: '$montantPaye' } } }
             ]),
-
-            // ── Loyers par mode de paiement
             PaiementLoyer.aggregate([
                 { $match: { statut: 'paye' } },
                 { $group: { _id: '$modePaiement', count: { $sum: 1 }, total: { $sum: '$montantPaye' } } }
             ]),
-
-            // ── COMMANDES par statut
             Commande.aggregate([
                 { $group: { _id: '$statut', count: { $sum: 1 } } }
             ]),
-
-            // ── COMMANDES mensuelles (12 mois)
             Commande.aggregate([
                 { $match: { createdAt: { $gte: debut12 } } },
                 { $group: {
@@ -209,29 +144,17 @@ router.get('/',auth, async (req, res) => {
                     }},
                 { $sort: { '_id.year': 1, '_id.month': 1 } }
             ]),
-
-            // ── Total commandes montant (payées)
             PaiementCommande.aggregate([
                 { $match: { statut: 'paye' } },
                 { $group: { _id: null, total: { $sum: '$montantPaye' } } }
             ]),
-
-            // ── Commandes par mode paiement
             PaiementCommande.aggregate([
                 { $match: { statut: 'paye' } },
                 { $group: { _id: '$modePaiement', count: { $sum: 1 }, total: { $sum: '$montantPaye' } } }
             ]),
-
-            // ── Preuves commandes en attente
             PaiementCommande.countDocuments({ statutPreuve: 'en_attente_validation' }),
-
-            // ── Preuves loyers en attente
             PaiementLoyer.countDocuments({ statutPreuve: 'en_attente_validation' }),
         ]);
-
-        // ════════════════════════════════════════════════════════════════════
-        // CONSTRUCTION DES KPIs GLOBAUX
-        // ════════════════════════════════════════════════════════════════════
         const locauxDisponibles  = allLocaux.filter(l => l.etat_boutique === 'disponible').length;
         const locauxLoues        = allLocaux.filter(l => l.etat_boutique === 'louée').length;
         const locauxMaintenance  = allLocaux.filter(l => l.etat_boutique === 'maintenance').length;
@@ -258,12 +181,6 @@ router.get('/',auth, async (req, res) => {
                 preuvesEnAttente:    preuvesCmdenAttente + preuvesCmLoyerAttente
             }
         };
-
-        // ════════════════════════════════════════════════════════════════════
-        // SECTION FINANCES
-        // ════════════════════════════════════════════════════════════════════
-
-        // Mapper les loyers sur les 12 mois (avec 0 pour les mois sans données)
         const loyersMoisMap = {};
         loyersMensuelsBrut.forEach(l => { loyersMoisMap[l._id] = l.totalPaye; });
 
@@ -272,8 +189,6 @@ router.get('/',auth, async (req, res) => {
             label: new Date(m + '-01').toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' }),
             total: loyersMoisMap[m] ?? 0
         }));
-
-        // Mapper les commandes sur les 12 mois
         const cmdMoisMap = {};
         commandesMensuelles.forEach(c => {
             const k = `${c._id.year}-${String(c._id.month).padStart(2, '0')}`;
@@ -299,8 +214,8 @@ router.get('/',auth, async (req, res) => {
                 totalCommandesPaies: Math.round(totalCmdPay),
                 revenusTotal:      Math.round(totalLoyerPay + totalCmdPay)
             },
-            loyersMensuels,      // courbe 12 mois
-            commandesMensuels: commandesMois, // courbe 12 mois
+            loyersMensuels,     
+            commandesMensuels: commandesMois, 
 
             loyersParStatut: loyersParStatut.map(l => ({
                 statut: l._id,
@@ -325,12 +240,6 @@ router.get('/',auth, async (req, res) => {
                 total: Math.round(m.total)
             }))
         };
-
-        // ════════════════════════════════════════════════════════════════════
-        // SECTION LOCAUX
-        // ════════════════════════════════════════════════════════════════════
-
-        // Répartition par catégorie
         const catMap = {};
         allLocaux.forEach(l => {
             const cat = l.categorie || 'Non défini';
@@ -339,8 +248,6 @@ router.get('/',auth, async (req, res) => {
             if (l.etat_boutique === 'disponible') catMap[cat].disponibles++;
             if (l.etat_boutique === 'louée')      catMap[cat].loues++;
         });
-
-        // Répartition par emplacement
         const empMap = {};
         allLocaux.forEach(l => {
             const emp = l.emplacement || 'Non défini';
@@ -349,8 +256,6 @@ router.get('/',auth, async (req, res) => {
             if (l.etat_boutique === 'disponible') empMap[emp].disponibles++;
             if (l.etat_boutique === 'louée')      empMap[emp].loues++;
         });
-
-        // Revenus par local (top 5)
         const loyersParLocalRaw = await PaiementLoyer.aggregate([
             { $match: { statut: 'paye' } },
             { $group: { _id: '$localID', totalPaye: { $sum: '$montantPaye' }, count: { $sum: 1 } } },
@@ -396,12 +301,6 @@ router.get('/',auth, async (req, res) => {
                 count:  d.count
             }))
         };
-
-        // ════════════════════════════════════════════════════════════════════
-        // SECTION VISITES
-        // ════════════════════════════════════════════════════════════════════
-
-        // Mapper visites mensuelles sur 12 mois
         const visiteMoisMap = {};
         visitesMensuelles.forEach(v => {
             const k = `${v._id.year}-${String(v._id.month).padStart(2, '0')}`;
@@ -413,14 +312,11 @@ router.get('/',auth, async (req, res) => {
             label: new Date(m + '-01').toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' }),
             count: visiteMoisMap[m] ?? 0
         }));
-
-        // Statuts visites
         const totalVisites          = visitesParStatut.reduce((s, v) => s + v.count, 0);
         const visitesTerminees       = visitesParStatut.find(v => v._id === 'Terminée')?.count ?? 0;
         const visitesConfirmees      = visitesParStatut.find(v => v._id === 'Confirmée')?.count ?? 0;
         const visitesAnnulees        = visitesParStatut.find(v => v._id === 'Annulée')?.count ?? 0;
 
-        // Taux conversion visite → réservation (visites terminées avec une réservation)
         const visitesAvecResa = await Visite.aggregate([
             { $match: { statut: 'Terminée' } },
             { $lookup: {
@@ -460,10 +356,6 @@ router.get('/',auth, async (req, res) => {
                 count: v.count
             }))
         };
-
-        // ════════════════════════════════════════════════════════════════════
-        // RÉPONSE FINALE
-        // ════════════════════════════════════════════════════════════════════
         return res.json({
             generatedAt: new Date().toISOString(),
             kpis,
