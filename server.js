@@ -80,7 +80,7 @@ mongoose.connect(process.env.MONGODB_URI)
         app.use('/commande', require('./routes/commandeRoutes'));
         app.use('/vente', require('./routes/venteRoutes'));
 
-        server.listen(PORT, () => {
+       server.listen(PORT, '0.0.0.0', () => {
             console.log(`Serveur démarré sur le port ${PORT}`);
         });
     })
