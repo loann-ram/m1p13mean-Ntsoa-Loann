@@ -1,4 +1,4 @@
-const TypeClient = require('../model/TypeClientex');
+const TypeClient = require('../Model/TypeClientex');
 
 async function createTypeClient() {
     try {
