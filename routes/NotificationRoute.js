@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const Notification = require('../model/Notification');
+const Notification = require('../Model/Notification');
 
 // GET toutes les notifications de l'utilisateur connecté
 router.get('/mes-notifications', async (req, res) => {
