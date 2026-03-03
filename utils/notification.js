@@ -1,12 +1,9 @@
-const Notification = require('../model/Notification');
-const PaiementLoyer = require('../model/PaiementLoyer');
-const ReservationLocal = require('../model/ReservationLocal');
+const Notification = require('../Model/Notification');
+const PaiementLoyer = require('../Model/PaiementLoyer');
+const ReservationLocal = require('../Model/ReservationLocal');
 const nodemailer = require('nodemailer');
 const { getIO } = require('./socket');
 
-// ─────────────────────────────────────────────
-// CONFIG EMAIL
-// ─────────────────────────────────────────────
 const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
@@ -15,9 +12,6 @@ const transporter = nodemailer.createTransport({
     }
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Créer une notification in-app + émettre via Socket.io
-// ─────────────────────────────────────────────────────────────────────────────
 async function creerNotification(clientId, titre, message, type = 'info', lienAction = null) {
     try {
         const notif = await Notification.create({
@@ -47,10 +41,6 @@ async function creerNotification(clientId, titre, message, type = 'info', lienAc
         console.error('Erreur creerNotification :', error.message);
     }
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Email rappel loyer impayé
-// ─────────────────────────────────────────────────────────────────────────────
 async function envoyerEmailRetard(client, paiement, local) {
     const moisFormate = new Date(paiement.moisConcerne + '-01')
         .toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
@@ -83,14 +73,10 @@ async function envoyerEmailRetard(client, paiement, local) {
     await transporter.sendMail({
         from: `"MarketSpace" <${process.env.EMAIL_USER}>`,
         to: client.email,
-        subject: `⚠️ Rappel loyer impayé — ${moisFormate}`,
+        subject: ` Rappel loyer impayé — ${moisFormate}`,
         html
     });
-}
 
-// ─────────────────────────────────────────────────────────────────────────────
-// CRON JOB 1 — Chaque jour à 9h00
-// ─────────────────────────────────────────────────────────────────────────────
 async function verifierPaiementsEnRetard() {
     const aujourd_hui = new Date();
 
@@ -129,10 +115,6 @@ async function verifierPaiementsEnRetard() {
 
     console.log(`[CRON] ${paiementsEnRetard.length} paiements en retard traités`);
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// CRON JOB 2 — Le 1er de chaque mois à 00h01
-// ─────────────────────────────────────────────────────────────────────────────
 async function creerPaiementsMoisCourant() {
     const now = new Date();
     const annee = now.getFullYear();
@@ -182,10 +164,6 @@ async function creerPaiementsMoisCourant() {
 
     console.log(`[CRON] ${nbCrees} paiements créés pour ${moisConcerne}`);
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Créer le paiement du mois en cours lors d'une validation de contrat
-// ─────────────────────────────────────────────────────────────────────────────
 async function creerPaiementMoisEnCours(reponseDemande, clientId, localId, montantMensuel) {
     const now = new Date();
     const annee = now.getFullYear();
@@ -210,10 +188,6 @@ async function creerPaiementMoisEnCours(reponseDemande, clientId, localId, monta
     console.log(`[PAIEMENT] Mois en cours créé → ${moisConcerne} client ${clientId}`);
     return 1;
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Helper GET /mes-loyers
-// ─────────────────────────────────────────────────────────────────────────────
 async function getMesLoyers(clientId, reservation) {
     const paiementsStockes = await PaiementLoyer
         .find({ clientID: clientId })
