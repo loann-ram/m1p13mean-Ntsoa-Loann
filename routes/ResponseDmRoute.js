@@ -5,13 +5,13 @@ const path = require('path');
 const puppeteer = require('puppeteer');
 const jwt = require('jsonwebtoken'); // ← AJOUT
 
-const DemandeClient = require('../model/DemandeClient');
-const ReponseDemande = require('../model/ResponseDm');
-const ReservationLocal = require('../model/ReservationLocal');
-const Local = require('../model/Local');
+const DemandeClient = require('../Model/DemandeClient');
+const ReponseDemande = require('../Model/ResponseDm');
+const ReservationLocal = require('../Model/ReservationLocal');
+const Local = require('../Model/Local');
 const { creerPaiementMoisEnCours } = require('../utils/notification');
-const Boutique = require('../model/Boutique');
-const Notification = require('../model/Notification');
+const Boutique = require('../Model/Boutique');
+const Notification = require('../Model/Notification');
 const authAdmin = require("../middleware/authAdmin");
 const auth = require("../middleware/auth");
 
