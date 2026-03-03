@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const TypeClientex = require('../model/TypeClientex');
+const TypeClientex = require('../Model/TypeClientex');
 
 router.get('/listeTypeClient', async (req, res) => {
     try {
