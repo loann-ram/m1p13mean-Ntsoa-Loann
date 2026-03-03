@@ -3,16 +3,38 @@ const mongoose = require('mongoose');
 const HoraireSchema = new mongoose.Schema({
     jour: {
         type: String,
-        enum: ["Lundi", "Mardi", "Mercredi", "Jeudi",
-            "Vendredi", "Samedi", "Dimanche"]
+        enum: [
+            "Lundi", "Mardi", "Mercredi", "Jeudi",
+            "Vendredi", "Samedi", "Dimanche"
+        ],
+        required: true
     },
     is_open: {
         type: Boolean,
         default: true
     },
-    ouverture: String,
-    fermeture: String
+    ouverture: {
+        type: String,
+        validate: {
+            validator: function(v) {
+                return /^([01]\d|2[0-3]):([0-5]\d)$/.test(v);
+            },
+            message: props => `${props.value} n'est pas un format d'heure valide (HH:mm)!`
+        },
+        required: function() { return this.is_open; }
+    },
+    fermeture: {
+        type: String,
+        validate: {
+            validator: function(v) {
+                return /^([01]\d|2[0-3]):([0-5]\d)$/.test(v);
+            },
+            message: props => `${props.value} n'est pas un format d'heure valide (HH:mm)!`
+        },
+        required: function() { return this.is_open; }
+    }
 });
+
 
 const BoutiqueSchema = new mongoose.Schema({
     utilisateurId: {
@@ -23,8 +45,7 @@ const BoutiqueSchema = new mongoose.Schema({
     local: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Local',
-        required: true,
-        unique: true
+        required: true
     },
     nom: {
         type: String,
@@ -40,14 +61,15 @@ const BoutiqueSchema = new mongoose.Schema({
     logo: {
         type: String
     },
-    categories: [{
+    categorie: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'Categorie'
-    }],
+        ref: 'Categorie',
+        required: true
+    },
     horaires: [HoraireSchema],
     is_active: {
         type: Boolean,
-        default: false
+        default: true
     },
     inscription: {
         type: Date,
@@ -55,4 +77,6 @@ const BoutiqueSchema = new mongoose.Schema({
     }
 });
 
-module.exports = mongoose.model('Boutique', BoutiqueSchema);
+BoutiqueSchema.index({ local: 1 }, { unique: true, partialFilterExpression: { is_active: true } });
+
+module.exports =mongoose.models.Boutique || mongoose.model('Boutique', BoutiqueSchema);

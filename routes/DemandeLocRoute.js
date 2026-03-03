@@ -1,8 +1,5 @@
 const express = require('express');
 const router = express.Router();
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
 const Local = require('../model/Local');
 const ReservationLocal = require('../model/ReservationLocal');
 const Utilisateur = require('../model/Utilisateur');
@@ -10,53 +7,40 @@ const DossierRequirement = require('../model/DossierRequire');
 const Dossier = require('../model/Dossier');
 const TypeDossier = require('../model/TypeDossier');
 const DemandeClient = require('../model/DemandeClient');
+const { creerNotification } = require('../utils/notification');
+const { createUpload, cloudinary, extractPublicId } = require('../config/cloudinary');
+const auth = require("../middleware/auth");
 
 // ─────────────────────────────────────────────
-// CONFIG MULTER — stockage dynamique par client
+// CONFIG CLOUDINARY — stockage dynamique par client
 // ─────────────────────────────────────────────
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        const dir = `uploads/clients/${req.user.id}`;
-        fs.mkdirSync(dir, { recursive: true });
-        cb(null, dir);
-    },
-    filename: (req, file, cb) => {
-        const unique = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
-        cb(null, `${file.fieldname}-${unique}${path.extname(file.originalname)}`);
-    }
+const upload = createUpload({
+    folder: 'dossiers-clients',
+    allowedFormats: ['pdf', 'jpg', 'jpeg', 'png'],
+    maxSizeMB: 10
 });
 
-const upload = multer({
-    storage,
-    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB max par fichier
-    fileFilter: (req, file, cb) => {
-        const allowed = /pdf|jpg|jpeg|png/;
-        const ext = allowed.test(path.extname(file.originalname).toLowerCase());
-        const mime = allowed.test(file.mimetype);
-        ext && mime ? cb(null, true) : cb(new Error('Format non supporté (pdf, jpg, png uniquement)'));
-    }
-});
 // ─────────────────────────────────────────────────────────────────────────────
 // HELPER — récupère les documents requis selon le typeClient de l'utilisateur.
 // ─────────────────────────────────────────────────────────────────────────────
-async function getRequiredDocuments(typeClientId) {// mila mi afficher anle type de client rehetra alouha zany dia n id ano alefa any
+async function getRequiredDocuments(typeClientId) {
+    console.log('typeClientId reçu =', typeClientId);
     const requirement = await DossierRequirement
         .findOne({ typeClientex: typeClientId })
-        .populate('typeDocument') // on récupère les détails de chaque TypeDocument
+        .populate('typeDocument')
         .lean();
-
+    console.log('requirement trouvé =', requirement);
     return requirement || null;
 }
+
 // ─────────────────────────────────────────────────────────────────────────────
 // ROUTE 1 — Récupérer les documents requis pour un client (avant upload)
 // GET /api/dossiers/required/:reservationId
-// Permet au front de savoir quels champs afficher dans le formulaire d'upload
 // ─────────────────────────────────────────────────────────────────────────────
 router.get('/required/:reservationId', async (req, res) => {
     try {
         const { reservationId } = req.params;
 
-        // 1. Trouver la réservation et peupler le client avec son typeClient
         const reservation = await ReservationLocal
             .findById(reservationId)
             .populate({
@@ -65,13 +49,13 @@ router.get('/required/:reservationId', async (req, res) => {
                 populate: { path: 'typeClient', select: 'typeClientex' }
             })
             .lean();
+        console.log('reservation.clientId =', reservation?.clientId);
+        console.log('typeClient =', reservation?.clientId?.typeClient)
 
         if (!reservation) return res.status(404).json({ message: 'Réservation introuvable' });
 
         const client = reservation.clientId;
         if (!client?.typeClient) return res.status(400).json({ message: 'Type client non défini pour cet utilisateur' });
-
-        // 2. Récupérer les documents requis selon le typeClient
 
         const requirement = await getRequiredDocuments(client.typeClient._id);
         if (!requirement) return res.status(404).json({ message: 'Aucun document configuré pour ce type de client' });
@@ -81,7 +65,7 @@ router.get('/required/:reservationId', async (req, res) => {
             obligatoire: requirement.obligatoire,
             documentsRequis: requirement.typeDocument.map(doc => ({
                 id: doc._id,
-                nom: doc.nom,          // ex: "CIN", "NIF", "STAT", "Business Plan"
+                nom: doc.nom,
                 description: doc.description || null
             }))
         });
@@ -91,17 +75,15 @@ router.get('/required/:reservationId', async (req, res) => {
         res.status(500).json({ message: 'Erreur serveur', error: err.message });
     }
 });
+
 // ─────────────────────────────────────────────────────────────────────────────
 // ROUTE 2 — Upload des dossiers + création Dossier + DemandeClient
 // POST /api/dossiers/soumettre/:reservationId
-//
-// Le front envoie les fichiers avec pour fieldname l'ID du TypeDocument
-// ex: form-data: { "64abc...": <fichier CIN>, "64def...": <fichier NIF> }
 // ─────────────────────────────────────────────────────────────────────────────
-router.post('/soumettre/:reservationId', async (req, res) => {
+router.post('/soumettre/:reservationId', auth,async (req, res) => {
     try {
         const { reservationId } = req.params;
-        const clientId = req.user.id; // middleware auth requis
+        const clientId = req.user.id;
 
         // 1. Vérifier la réservation
         const reservation = await ReservationLocal
@@ -122,7 +104,7 @@ router.post('/soumettre/:reservationId', async (req, res) => {
 
         const requiredDocIds = requirement.typeDocument.map(d => String(d._id || d));
 
-        // 3. Multer dynamique — on accepte les fichiers dont le fieldname = un TypeDocument ID valide
+        // 3. Multer/Cloudinary dynamique
         const fieldsConfig = requiredDocIds.map(id => ({ name: id, maxCount: 1 }));
         const uploadFields = upload.fields(fieldsConfig);
 
@@ -143,15 +125,17 @@ router.post('/soumettre/:reservationId', async (req, res) => {
                     }
                     continue;
                 }
-                // ← AJOUT : vérifier si ce type de dossier existe déjà pour ce client
+
+                // Vérifier si ce type de dossier existe déjà pour ce client
                 const dossierExistant = await Dossier.findOne({
                     clientID: clientId,
                     typeDossier: docId
                 });
 
                 if (dossierExistant) {
-                    // Nettoyer le fichier uploadé
-                    fs.unlink(file.path, () => {});
+                    // Supprimer le fichier uploadé sur Cloudinary
+                    const publicId = extractPublicId(file.path);
+                    if (publicId) await cloudinary.uploader.destroy(publicId);
                     return res.status(409).json({
                         message: `Dossier déjà soumis pour ce type de document`,
                         typeDossier: docId
@@ -161,7 +145,7 @@ router.post('/soumettre/:reservationId', async (req, res) => {
                 const dossier = await Dossier.create({
                     clientID: clientId,
                     typeDossier: docId,
-                    cheminDossier: file.path,
+                    cheminDossier: file.path, // ← URL Cloudinary complète
                     statusDm: 'en attente'
                 });
 
@@ -170,10 +154,13 @@ router.post('/soumettre/:reservationId', async (req, res) => {
 
             // 5. Si des documents obligatoires manquent → rejeter
             if (missingDocs.length > 0) {
-                // Nettoyer les fichiers déjà uploadés
-                Object.values(files).flat().forEach(f => {
-                    fs.unlink(f.path, () => {});
-                });
+                // Supprimer les fichiers uploadés sur Cloudinary
+                for (const fileArr of Object.values(files)) {
+                    for (const f of fileArr) {
+                        const publicId = extractPublicId(f.path);
+                        if (publicId) await cloudinary.uploader.destroy(publicId);
+                    }
+                }
                 // Supprimer les dossiers créés en BD
                 await Dossier.deleteMany({ _id: { $in: dossiersCreated } });
 
@@ -183,12 +170,24 @@ router.post('/soumettre/:reservationId', async (req, res) => {
                 });
             }
 
-            // 6. Créer la DemandeClient en liant le premier dossier (ou adapter selon votre logique)
+            // 6. Créer la DemandeClient
             const demande = await DemandeClient.create({
                 clientID: clientId,
                 dossierClientID: dossiersCreated[0] || null,
                 statusDm: 'en attente'
             });
+
+            // Notifier tous les admins
+            const admins = await Utilisateur.find({ role: 'admin' }).select('_id').lean();
+            for (const admin of admins) {
+                await creerNotification(
+                    admin._id,
+                    '📋 Nouvelle demande de location',
+                    `Un client vient de soumettre un dossier complet (${dossiersCreated.length} document(s)). En attente de validation.`,
+                    'info',
+                    `/admin/demandes/${demande._id}`
+                );
+            }
 
             return res.status(201).json({
                 message: 'Dossiers soumis avec succès',
@@ -202,6 +201,7 @@ router.post('/soumettre/:reservationId', async (req, res) => {
         res.status(500).json({ message: 'Erreur serveur', error: err.message });
     }
 });
+
 // ─────────────────────────────────────────────────────────────────────────────
 // ROUTE 3 — Afficher les dossiers du client + vérification complétude
 // GET /api/dossiers/mes-dossiers/:reservationId
@@ -209,9 +209,8 @@ router.post('/soumettre/:reservationId', async (req, res) => {
 router.get('/mes-dossiers/:reservationId', async (req, res) => {
     try {
         const { reservationId } = req.params;
-        const clientId = req.user._id;
+        const clientId = req.user.id;
 
-        // 1. Récupérer la réservation + typeClient
         const reservation = await ReservationLocal
             .findById(reservationId)
             .populate({
@@ -224,20 +223,15 @@ router.get('/mes-dossiers/:reservationId', async (req, res) => {
         if (String(reservation.clientId._id) !== String(clientId))
             return res.status(403).json({ message: 'Accès refusé' });
 
-        // 2. Récupérer les documents requis (obligatoires)
         const requirement = await getRequiredDocuments(reservation.clientId.typeClient._id);
         if (!requirement) return res.status(404).json({ message: 'Aucune configuration de documents trouvée' });
 
         const requiredDocIds = requirement.typeDocument.map(d => String(d._id || d));
 
-        // 3. Récupérer tous les dossiers déposés par ce client
         const dossiersDéposes = await Dossier
             .find({ clientID: clientId })
             .populate('typeDossier', 'nom')
             .lean();
-
-        // 4. Mapper et vérifier la complétude
-        const déposeIds = new Set(dossiersDéposes.map(d => String(d.typeDossier?.nom)));
 
         const statutDocuments = requiredDocIds.map(docId => {
             const dossier = dossiersDéposes.find(d => String(d.typeDossier?.nom) === docId);
@@ -246,7 +240,7 @@ router.get('/mes-dossiers/:reservationId', async (req, res) => {
                 present: !!dossier,
                 obligatoire: requirement.obligatoire,
                 status: dossier?.statusDm || null,
-                cheminDossier: dossier?.cheminDossier || null,
+                cheminDossier: dossier?.cheminDossier || null, // ← URL Cloudinary
                 uploadedAt: dossier?.createdAt || null
             };
         });
@@ -267,11 +261,12 @@ router.get('/mes-dossiers/:reservationId', async (req, res) => {
         res.status(500).json({ message: 'Erreur serveur', error: err.message });
     }
 });
+
 // ─────────────────────────────────────────────────────────────────────────────
 // ROUTE 4 — (Admin) Voir les dossiers d'un client + complétude
-// GET /api/dossiers/admin/client/:clientId
+// GET /DemandeLocationCM/admin/dossier-client/:clientId
 // ─────────────────────────────────────────────────────────────────────────────
-router.get('/admin/client/:clientId', async (req, res) => {
+router.get('/admin/dossier-client/:clientId', async (req, res) => {
     try {
         const { clientId } = req.params;
 
@@ -286,59 +281,102 @@ router.get('/admin/client/:clientId', async (req, res) => {
         const requirement = await getRequiredDocuments(client.typeClient._id);
         if (!requirement) return res.status(404).json({ message: 'Configuration manquante' });
 
-        const requiredDocIds = requirement.typeDocument.map(d => String(d._id || d));
+        const requiredDocs = requirement.typeDocument;
+        const requiredDocIds = requiredDocs.map(d => String(d._id || d));
 
         const dossiers = await Dossier
             .find({ clientID: clientId })
-            .populate('typeDossier', 'nom')
+            .populate('typeDossier', 'nom description')
             .lean();
 
-        const statutDocuments = requiredDocIds.map(docId => {
-            const dossier = dossiers.find(d => String(d.typeDossier?.nom) === docId);
+        const statutDocuments = requiredDocs.map(doc => {
+            const docId = String(doc._id);
+            const dossier = dossiers.find(d => String(d.typeDossier?._id) === docId);
             return {
                 typeDocumentId: docId,
+                nomDocument: doc.nom,
+                description: doc.description || null,
                 present: !!dossier,
                 obligatoire: requirement.obligatoire,
                 status: dossier?.statusDm || null,
-                cheminDossier: dossier?.cheminDossier || null,
+                cheminDossier: dossier?.cheminDossier || null, // ← URL Cloudinary
                 uploadedAt: dossier?.createdAt || null
             };
         });
 
         const dossierComplet = statutDocuments.filter(d => d.obligatoire && !d.present).length === 0;
 
+        const reservation = await ReservationLocal
+            .findOne({ clientId: clientId })
+            .populate('localeID', 'nom_boutique emplacement surface categorie etat_boutique')
+            .sort({ createdAt: -1 })
+            .lean();
+
+        const prixRaw = reservation?.infoLoc?.prix;
+        const prixMensuel = prixRaw?.$numberDecimal
+            ? parseFloat(prixRaw.$numberDecimal)
+            : parseFloat(prixRaw) || 0;
+
         return res.json({
-            client: { id: client._id, email: client.email, typeClient: client.typeClient.typeClientex },
+            client: {
+                id: client._id,
+                email: client.email,
+                telephone: client.telephone,
+                typeClient: client.typeClient.typeClientex
+            },
+            reservation: reservation ? {
+                _id: reservation._id,
+                status: reservation.status,
+                createdAt: reservation.createdAt,
+                infoLoc: {
+                    duree: reservation.infoLoc?.dure,
+                    prixMensuel,
+                    totalContrat: (reservation.infoLoc?.dure || 0) * prixMensuel
+                },
+                local: reservation.localeID ? {
+                    nom: reservation.localeID.nom_boutique,
+                    emplacement: reservation.localeID.emplacement,
+                    surface: reservation.localeID.surface,
+                    categorie: reservation.localeID.categorie,
+                    etat: reservation.localeID.etat_boutique
+                } : null
+            } : null,
             dossierComplet,
             progression: `${statutDocuments.filter(d => d.present).length}/${requiredDocIds.length}`,
             documents: statutDocuments
         });
 
     } catch (err) {
-        console.error('[GET /admin/client]', err);
+        console.error('[GET /admin/dossier-client]', err);
         res.status(500).json({ message: 'Erreur serveur', error: err.message });
     }
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// ROUTE 5 — Afficher toutes les demandes de location
+// GET /api/dossiers/all-demande-client?statut=...
+// ─────────────────────────────────────────────────────────────────────────────
+router.get('/all-demande-client', async (req, res) => {
+    try {
+        const { statut } = req.query;
+        const filter = statut ? { statusDm: statut } : {};
 
-// Afficher tous les demandes de location
-router.get('/All-local', async (req, res) => {
-    try {
-        const locales  = await Local.find();
-        res.json(locales);
-    }
-    catch (error) {
-        res.status(500).json({ message: error.message });
-    }
-});
-// Afficher tous les demandes de location en (parametre => soit valider,en attente,refuser)
-router.get('/local-availaible', async (req, res) => {
-    try {
-        const locales  = await Local.find({etat_boutique:'disponible'},undefined,undefined);
-        res.json(locales);
-    }
-    catch (error) {
-        res.status(500).json({ message: error.message });
+        const demandes = await DemandeClient
+            .find(filter)
+            .populate({
+                path: 'clientID',
+                select: 'email telephone typeClient',
+                populate: { path: 'typeClient', select: 'typeClientex' }
+            })
+            .populate('dossierClientID')
+            .sort({ createdAt: -1 })
+            .lean();
+
+        return res.json(demandes);
+    } catch (err) {
+        console.error('[GET /demandes]', err);
+        res.status(500).json({ message: 'Erreur serveur', error: err.message });
     }
 });
+
 module.exports = router;

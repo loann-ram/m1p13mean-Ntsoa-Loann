@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contrat de Location</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Times New Roman', Times, serif;
+            font-size: 13px;
+            color: #1a1a1a;
+            background: #fff;
+            padding: 40px 60px;
+            line-height: 1.7;
+        }
+
+        /* ── En-tête ── */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border-bottom: 3px solid #1a3a5c;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+
+        .logo-zone h1 {
+            font-size: 22px;
+            color: #1a3a5c;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .logo-zone p {
+            font-size: 11px;
+            color: #666;
+            margin-top: 4px;
+        }
+
+        .ref-zone {
+            text-align: right;
+            font-size: 11px;
+            color: #555;
+        }
+
+        .ref-zone strong {
+            display: block;
+            font-size: 13px;
+            color: #1a3a5c;
+        }
+
+        /* ── Titre principal ── */
+        .titre-contrat {
+            text-align: center;
+            margin: 30px 0 25px;
+        }
+
+        .titre-contrat h2 {
+            font-size: 20px;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            color: #1a3a5c;
+            border: 2px solid #1a3a5c;
+            display: inline-block;
+            padding: 8px 30px;
+        }
+
+        /* ── Sections ── */
+        .section {
+            margin-bottom: 25px;
+        }
+
+        .section-title {
+            font-size: 13px;
+            font-weight: bold;
+            color: #fff;
+            background: #1a3a5c;
+            padding: 5px 14px;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .section-content {
+            padding: 0 14px;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px 20px;
+        }
+
+        .info-item {
+            display: flex;
+            flex-direction: column;
+            border-bottom: 1px dashed #ccc;
+            padding-bottom: 6px;
+        }
+
+        .info-label {
+            font-size: 10px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .info-value {
+            font-size: 13px;
+            font-weight: bold;
+            color: #1a1a1a;
+        }
+
+        /* ── Clauses ── */
+        .clauses {
+            background: #f8f9fc;
+            border-left: 4px solid #1a3a5c;
+            padding: 15px 20px;
+            margin-bottom: 25px;
+        }
+
+        .clause {
+            margin-bottom: 12px;
+        }
+
+        .clause-num {
+            font-weight: bold;
+            color: #1a3a5c;
+        }
+
+        /* ── Montant ── */
+        .montant-box {
+            background: #1a3a5c;
+            color: #fff;
+            text-align: center;
+            padding: 14px;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+
+        .montant-box .label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            opacity: 0.8;
+        }
+
+        .montant-box .amount {
+            font-size: 26px;
+            font-weight: bold;
+            margin-top: 4px;
+        }
+
+        .montant-box .per {
+            font-size: 11px;
+            opacity: 0.7;
+        }
+
+        /* ── Signatures ── */
+        .signatures {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            margin-top: 40px;
+        }
+
+        .signature-block {
+            text-align: center;
+        }
+
+        .signature-block .sig-title {
+            font-weight: bold;
+            font-size: 12px;
+            color: #1a3a5c;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+        }
+
+        .signature-block .sig-name {
+            font-size: 12px;
+            color: #444;
+            margin-bottom: 50px;
+        }
+
+        .sig-line {
+            border-top: 2px solid #1a3a5c;
+            margin: 0 20px;
+        }
+
+        .sig-mention {
+            font-size: 10px;
+            color: #888;
+            margin-top: 6px;
+        }
+
+        /* ── Pied de page ── */
+        .footer {
+            margin-top: 40px;
+            border-top: 1px solid #ddd;
+            padding-top: 12px;
+            text-align: center;
+            font-size: 10px;
+            color: #aaa;
+        }
+
+        .badge-valide {
+            display: inline-block;
+            background: #e8f5e9;
+            color: #2e7d32;
+            border: 1px solid #2e7d32;
+            padding: 3px 12px;
+            font-size: 11px;
+            font-weight: bold;
+            border-radius: 20px;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- En-tête -->
+    <div class="header">
+        <div class="logo-zone">
+            <h1>MarketSpace</h1>
+            <p>Gestion de locaux commerciaux</p>
+        </div>
+        <div class="ref-zone">
+            <strong>CONTRAT N° {{contratNumero}}</strong>
+            Date d'émission : {{dateEmission}}<br>
+            Statut : <span style="color:#2e7d32; font-weight:bold;">VALIDÉ</span>
+        </div>
+    </div>
+
+    <!-- Titre -->
+    <div class="titre-contrat">
+        <h2>Contrat de Location Commerciale</h2>
+    </div>
+
+    <!-- Badge -->
+    <div style="text-align:center; margin-bottom:20px;">
+        <span class="badge-valide">✔ DEMANDE ACCEPTÉE</span>
+    </div>
+
+    <!-- Parties -->
+    <div class="section">
+        <div class="section-title">Article 1 — Les Parties</div>
+        <div class="section-content">
+            <div class="info-grid">
+                <div class="info-item">
+                    <span class="info-label">Bailleur</span>
+                    <span class="info-value">MarketSpace SA</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Locataire</span>
+                    <span class="info-value">{{clientEmail}}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Téléphone locataire</span>
+                    <span class="info-value">{{clientTelephone}}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Type de client</span>
+                    <span class="info-value">{{typeClient}}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Local -->
+    <div class="section">
+        <div class="section-title">Article 2 — Le Local Loué</div>
+        <div class="section-content">
+            <div class="info-grid">
+                <div class="info-item">
+                    <span class="info-label">Nom du local</span>
+                    <span class="info-value">{{localNom}}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Catégorie</span>
+                    <span class="info-value">{{localCategorie}}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Emplacement</span>
+                    <span class="info-value">{{localEmplacement}}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Surface</span>
+                    <span class="info-value">{{localSurface}} m²</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Durée & Montant -->
+    <div class="section">
+        <div class="section-title">Article 3 — Durée et Loyer</div>
+        <div class="section-content">
+            <div class="info-grid" style="margin-bottom:16px;">
+                <div class="info-item">
+                    <span class="info-label">Date de début</span>
+                    <span class="info-value">{{dateDebut}}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Durée</span>
+                    <span class="info-value">{{duree}} mois</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Date de fin estimée</span>
+                    <span class="info-value">{{dateFin}}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Statut réservation</span>
+                    <span class="info-value">{{statusReservation}}</span>
+                </div>
+            </div>
+
+            <div class="montant-box">
+                <div class="label">Loyer mensuel convenu</div>
+                <div class="amount">{{prix}} Ar</div>
+                <div class="per">par mois — toutes charges incluses</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Clauses -->
+    <div class="section">
+        <div class="section-title">Article 4 — Clauses Générales</div>
+        <div class="clauses">
+            <div class="clause">
+                <span class="clause-num">4.1</span> Le locataire s'engage à utiliser le local conformément à sa destination commerciale et à ne pas le sous-louer sans accord préalable écrit du bailleur.
+            </div>
+            <div class="clause">
+                <span class="clause-num">4.2</span> Le loyer est payable mensuellement, au plus tard le 5 de chaque mois. Tout retard entraînera des pénalités de 2% par mois de retard.
+            </div>
+            <div class="clause">
+                <span class="clause-num">4.3</span> Le locataire prend en charge l'entretien courant du local. Les réparations structurelles restent à la charge du bailleur.
+            </div>
+            <div class="clause">
+                <span class="clause-num">4.4</span> En cas de résiliation anticipée, un préavis de 3 mois est requis par écrit. Toute résiliation sans préavis entraîne la perte du dépôt de garantie.
+            </div>
+            <div class="clause">
+                <span class="clause-num">4.5</span> Le présent contrat est soumis au droit malgache. Tout litige sera porté devant les juridictions compétentes d'Antananarivo.
+            </div>
+        </div>
+    </div>
+
+    <!-- Commentaire admin si présent -->
+    {{#if commentaire}}
+    <div class="section">
+        <div class="section-title">Note de l'Administrateur</div>
+        <div class="section-content" style="font-style:italic; color:#444;">
+            {{commentaire}}
+        </div>
+    </div>
+    {{/if}}
+
+    <!-- Signatures -->
+    <div class="signatures">
+        <div class="signature-block">
+            <div class="sig-title">Le Bailleur</div>
+            <div class="sig-name">MarketSpace SA</div>
+            <div class="sig-line"></div>
+            <div class="sig-mention">Signature et cachet</div>
+        </div>
+        <div class="signature-block">
+            <div class="sig-title">Le Locataire</div>
+            <div class="sig-name">{{clientEmail}}</div>
+            <div class="sig-line"></div>
+            <div class="sig-mention">Signature précédée de « Lu et approuvé »</div>
+        </div>
+    </div>
+
+    <!-- Pied de page -->
+    <div class="footer">
+        Document généré automatiquement le {{dateEmission}} — MarketSpace © 2025<br>
+        Ce contrat est valable uniquement avec les deux signatures originales.
+    </div>
+
+</body>
+</html>

@@ -7,39 +7,39 @@ const Typeclientex = require('../model/TypeClientex');
 
 router.post('/inscription', async (req, res) => {
     try {
-        const { email, mdp, telephone, roles, typeClient } = req.body;
+        const { nom, prenom, email, mdp, telephone, roles, typeClient } = req.body;
 
         const userExist = await Utilisateur.findOne({ email });
         if (userExist) {
             return res.status(400).json({ message: 'Cet email est déjà utilisé' });
         }
 
-        if (roles && roles.includes('boutique')) {
-            if (!typeClient) {
-                return res.status(400).json({ message: 'Le type de client est requis pour une boutique' });
-            }
-
-            const typeClientExist = await Typeclientex.findById(typeClient);
-            if (!typeClientExist) {
-                return res.status(400).json({ message: 'Type de client invalide' });
-            }
+        if (!typeClient) {
+            return res.status(400).json({ message: 'Le type de client est requis' });
+        }
+        const typeClientExist = await Typeclientex.findById(typeClient);
+        if (!typeClientExist) {
+            return res.status(400).json({ message: 'Type de client invalide' });
         }
 
         const mdpChiffre = await bcrypt.hash(mdp, 10);
 
         const newUser = new Utilisateur({
+            nom,
+            prenom,
             email,
             mdp: mdpChiffre,
             telephone,
-            roles,
-            typeClient: roles && roles.includes('boutique') ? typeClient : undefined
+            roles: roles || ['acheteur'],
+            typeClient
         });
 
         await newUser.save();
         res.status(201).json({ message: 'Inscription réussie' });
 
     } catch (err) {
-        res.status(500).json({ message: 'Erreur serveur: ', error: err.message });
+        console.error("Erreur inscription :", err);
+        res.status(500).json({ message: 'Erreur serveur', error: err.message });
     }
 });
 
@@ -68,6 +68,8 @@ router.post('/connexion', async (req, res) => {
             token,
             user: {
                 id: userExist._id,
+                nom: userExist.nom,
+                prenom: userExist.prenom,
                 email: userExist.email,
                 roles: userExist.roles
             },

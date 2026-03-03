@@ -3,6 +3,7 @@ const router = express.Router();
 const Local = require('../model/Local');
 const Resa = require('../model/ReservationLocal');
 const Visite = require("../model/Visite");
+const auth = require("../middleware/auth");
 
 // Créer reservation
 router.post('/add-reservation', async (req, res) => {
@@ -38,11 +39,14 @@ router.get('/all-Reservation', async (req, res) => {
     }
 });
 //All reservation(filtered)
-router.get('/Reservation-client/:id_client', async (req, res) => {
+router.get('/Reservation-client',auth, async (req, res) => {
     try {
-        const id_client = req.params.id_client;
-        const resaClient = await Resa.findById(id_client);
-        res.json(resaClient);
+            console.log("ity le id client",req.user.id)
+        const resaClient = await Resa
+            .find({ clientId: req.user.id })
+            .populate('localeID', 'nom_boutique adresse')
+            .lean();
+            res.json(resaClient);
     }
     catch (error) {
         res.status(500).json({ message: error.message });

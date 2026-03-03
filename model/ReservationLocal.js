@@ -5,7 +5,7 @@ const mongoose = require('mongoose');
 const ReservationLocal = new mongoose.Schema({
     localeID: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'Locale',
+        ref: 'Local',
         required: true
     },
     clientId: {
@@ -25,7 +25,7 @@ const ReservationLocal = new mongoose.Schema({
     status:{
         type: String,
         required: true,
-        enum: ['Confirmée','En attente','Annulée'],
+        enum: ['Confirmée','En attente','Annulée','Demande soumis'],
         default : 'En attente'
     }
 },{ timestamps: true });

@@ -5,6 +5,13 @@ const UtilisateurSchema = new mongoose.Schema({
         type: Date,
         default: Date.now
     },
+    nom:{
+        type: String,
+        required: true
+    },
+    prenom: {
+        type: String
+    },
     email:{
         type: String,
         required: true,
@@ -26,11 +33,8 @@ const UtilisateurSchema = new mongoose.Schema({
     typeClient: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'TypeClientex',
-        required: function() {
-            return this.roles.includes('boutique');
-        }
+        required: true
     }
 });
 
-module.exports = mongoose.models.Utilisateur
-    || mongoose.model('Utilisateur', UtilisateurSchema);
+module.exports =mongoose.models.Utilisateur || mongoose.model('Utilisateur',UtilisateurSchema);
