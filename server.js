@@ -77,7 +77,7 @@ mongoose.connect(process.env.MONGO_URI)
         app.use('/produit', require('./routes/produitRoutes'));
         app.use('/stock', require('./routes/stockRoutes'));
         app.use('/typeClient', require('./routes/typeClientRoutes'));
-        app.use('/commande', require('./routes/commandeRoutes'));
+        app.use('/commande', require('./routes/CommandeRoutes'));
         app.use('/vente', require('./routes/venteRoutes'));
 
        server.listen(PORT, '0.0.0.0', () => {
