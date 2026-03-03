@@ -11,18 +11,13 @@ const { creerNotification } = require('../utils/notification');
 const { createUpload, cloudinary, extractPublicId } = require('../config/cloudinary');
 const auth = require("../middleware/auth");
 
-// ─────────────────────────────────────────────
-// CONFIG CLOUDINARY — stockage dynamique par client
-// ─────────────────────────────────────────────
+
 const upload = createUpload({
     folder: 'dossiers-clients',
     allowedFormats: ['pdf', 'jpg', 'jpeg', 'png'],
     maxSizeMB: 10
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// HELPER — récupère les documents requis selon le typeClient de l'utilisateur.
-// ─────────────────────────────────────────────────────────────────────────────
 async function getRequiredDocuments(typeClientId) {
     console.log('typeClientId reçu =', typeClientId);
     const requirement = await DossierRequirement
@@ -33,10 +28,7 @@ async function getRequiredDocuments(typeClientId) {
     return requirement || null;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// ROUTE 1 — Récupérer les documents requis pour un client (avant upload)
-// GET /api/dossiers/required/:reservationId
-// ─────────────────────────────────────────────────────────────────────────────
+
 router.get('/required/:reservationId', async (req, res) => {
     try {
         const { reservationId } = req.params;
@@ -76,16 +68,13 @@ router.get('/required/:reservationId', async (req, res) => {
     }
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// ROUTE 2 — Upload des dossiers + création Dossier + DemandeClient
-// POST /api/dossiers/soumettre/:reservationId
-// ─────────────────────────────────────────────────────────────────────────────
+
 router.post('/soumettre/:reservationId', auth,async (req, res) => {
     try {
         const { reservationId } = req.params;
         const clientId = req.user.id;
 
-        // 1. Vérifier la réservation
+        
         const reservation = await ReservationLocal
             .findById(reservationId)
             .populate({
@@ -98,42 +87,34 @@ router.post('/soumettre/:reservationId', auth,async (req, res) => {
         if (String(reservation.clientId._id) !== String(clientId))
             return res.status(403).json({ message: 'Accès refusé' });
 
-        // 2. Récupérer les documents requis pour ce typeClient
+      
         const requirement = await getRequiredDocuments(reservation.clientId.typeClient._id);
         if (!requirement) return res.status(400).json({ message: 'Configuration des documents manquante' });
 
         const requiredDocIds = requirement.typeDocument.map(d => String(d._id || d));
-
-        // 3. Multer/Cloudinary dynamique
+        
         const fieldsConfig = requiredDocIds.map(id => ({ name: id, maxCount: 1 }));
         const uploadFields = upload.fields(fieldsConfig);
-
         uploadFields(req, res, async (err) => {
             if (err) return res.status(400).json({ message: err.message });
-
             const files = req.files || {};
             const missingDocs = [];
             const dossiersCreated = [];
-
-            // 4. Pour chaque document requis, vérifier et créer un Dossier
             for (const docId of requiredDocIds) {
                 const file = files[docId]?.[0];
-
                 if (!file) {
                     if (requirement.obligatoire) {
                         missingDocs.push(docId);
                     }
                     continue;
                 }
-
-                // Vérifier si ce type de dossier existe déjà pour ce client
                 const dossierExistant = await Dossier.findOne({
                     clientID: clientId,
                     typeDossier: docId
                 });
 
                 if (dossierExistant) {
-                    // Supprimer le fichier uploadé sur Cloudinary
+                    
                     const publicId = extractPublicId(file.path);
                     if (publicId) await cloudinary.uploader.destroy(publicId);
                     return res.status(409).json({
@@ -151,17 +132,13 @@ router.post('/soumettre/:reservationId', auth,async (req, res) => {
 
                 dossiersCreated.push(dossier._id);
             }
-
-            // 5. Si des documents obligatoires manquent → rejeter
             if (missingDocs.length > 0) {
-                // Supprimer les fichiers uploadés sur Cloudinary
                 for (const fileArr of Object.values(files)) {
                     for (const f of fileArr) {
                         const publicId = extractPublicId(f.path);
                         if (publicId) await cloudinary.uploader.destroy(publicId);
                     }
                 }
-                // Supprimer les dossiers créés en BD
                 await Dossier.deleteMany({ _id: { $in: dossiersCreated } });
 
                 return res.status(400).json({
@@ -169,20 +146,18 @@ router.post('/soumettre/:reservationId', auth,async (req, res) => {
                     manquants: missingDocs
                 });
             }
-
-            // 6. Créer la DemandeClient
+            
             const demande = await DemandeClient.create({
                 clientID: clientId,
                 dossierClientID: dossiersCreated[0] || null,
                 statusDm: 'en attente'
             });
-
-            // Notifier tous les admins
+            
             const admins = await Utilisateur.find({ role: 'admin' }).select('_id').lean();
             for (const admin of admins) {
                 await creerNotification(
                     admin._id,
-                    '📋 Nouvelle demande de location',
+                    ' Nouvelle demande de location',
                     `Un client vient de soumettre un dossier complet (${dossiersCreated.length} document(s)). En attente de validation.`,
                     'info',
                     `/admin/demandes/${demande._id}`
@@ -202,10 +177,6 @@ router.post('/soumettre/:reservationId', auth,async (req, res) => {
     }
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// ROUTE 3 — Afficher les dossiers du client + vérification complétude
-// GET /api/dossiers/mes-dossiers/:reservationId
-// ─────────────────────────────────────────────────────────────────────────────
 router.get('/mes-dossiers/:reservationId', async (req, res) => {
     try {
         const { reservationId } = req.params;
@@ -262,10 +233,6 @@ router.get('/mes-dossiers/:reservationId', async (req, res) => {
     }
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// ROUTE 4 — (Admin) Voir les dossiers d'un client + complétude
-// GET /DemandeLocationCM/admin/dossier-client/:clientId
-// ─────────────────────────────────────────────────────────────────────────────
 router.get('/admin/dossier-client/:clientId', async (req, res) => {
     try {
         const { clientId } = req.params;
@@ -351,11 +318,6 @@ router.get('/admin/dossier-client/:clientId', async (req, res) => {
         res.status(500).json({ message: 'Erreur serveur', error: err.message });
     }
 });
-
-// ─────────────────────────────────────────────────────────────────────────────
-// ROUTE 5 — Afficher toutes les demandes de location
-// GET /api/dossiers/all-demande-client?statut=...
-// ─────────────────────────────────────────────────────────────────────────────
 router.get('/all-demande-client', async (req, res) => {
     try {
         const { statut } = req.query;

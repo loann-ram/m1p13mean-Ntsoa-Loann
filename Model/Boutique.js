@@ -19,7 +19,7 @@ const HoraireSchema = new mongoose.Schema({
             validator: function(v) {
                 return /^([01]\d|2[0-3]):([0-5]\d)$/.test(v);
             },
-            message: props => `${props.value} n'est pas un format d'heure valide (HH:mm)!`
+            message: props => ${props.value} n'est pas un format d'heure valide (HH:mm)!
         },
         required: function() { return this.is_open; }
     },
@@ -29,7 +29,7 @@ const HoraireSchema = new mongoose.Schema({
             validator: function(v) {
                 return /^([01]\d|2[0-3]):([0-5]\d)$/.test(v);
             },
-            message: props => `${props.value} n'est pas un format d'heure valide (HH:mm)!`
+            message: props => ${props.value} n'est pas un format d'heure valide (HH:mm)!
         },
         required: function() { return this.is_open; }
     }
