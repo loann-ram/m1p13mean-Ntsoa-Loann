@@ -46,7 +46,7 @@ io.on('connection', (socket) => {
         console.log(`Dossier créé : ${fullPath}`);
     }
 });
-mongoose.connect(process.env.MONGO_URI)
+mongoose.connect(process.env.MONGODB_URI)
     .then(async () => {
         console.log("MongoDB connecté avec succès");
         await createTypeClient();
