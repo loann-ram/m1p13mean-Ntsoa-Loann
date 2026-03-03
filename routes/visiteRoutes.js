@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const Visite = require('../model/Visite');
-const Local = require('../model/Local');
+const Visite = require('../Model/Visite');
+const Local = require('../Model/Local');
 const { creerNotification } = require('../utils/notification');
 
 const getDatesDispo = require('../utils/getDateDisp');
