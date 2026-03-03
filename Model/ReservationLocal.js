@@ -10,11 +10,7 @@ const ReservationLocal = new mongoose.Schema({
     },
     clientId: {
         type: mongoose.Schema.Types.ObjectId,
-<<<<<<< Updated upstream
-        ref: 'Client'
-=======
         ref: 'Utilisateur'
->>>>>>> Stashed changes
     },
     infoLoc:{
         dure:{

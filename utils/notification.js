@@ -43,7 +43,7 @@ async function creerNotification(clientId, titre, message, type = 'info', lienAc
 }
 async function envoyerEmailRetard(client, paiement, local) {
     const moisFormate = new Date(paiement.moisConcerne + '-01')
-        .toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+        .toLocaleDateString('fr-FR', {month: 'long', year: 'numeric'});
 
     const resteAPayer = paiement.montantDu - paiement.montantPaye;
 
@@ -76,7 +76,7 @@ async function envoyerEmailRetard(client, paiement, local) {
         subject: ` Rappel loyer impayé — ${moisFormate}`,
         html
     });
-
+}
 async function verifierPaiementsEnRetard() {
     const aujourd_hui = new Date();
 

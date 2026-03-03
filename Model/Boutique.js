@@ -19,7 +19,7 @@ const HoraireSchema = new mongoose.Schema({
             validator: function(v) {
                 return /^([01]\d|2[0-3]):([0-5]\d)$/.test(v);
             },
-            message: props => ${props.value} n'est pas un format d'heure valide (HH:mm)!
+            message: props => `${props.value} n'est pas un format d'heure valide (HH:mm)!`  // ✅
         },
         required: function() { return this.is_open; }
     },
@@ -29,12 +29,11 @@ const HoraireSchema = new mongoose.Schema({
             validator: function(v) {
                 return /^([01]\d|2[0-3]):([0-5]\d)$/.test(v);
             },
-            message: props => ${props.value} n'est pas un format d'heure valide (HH:mm)!
+            message: props => `${props.value} n'est pas un format d'heure valide (HH:mm)!`  // ✅
         },
         required: function() { return this.is_open; }
     }
 });
-
 
 const BoutiqueSchema = new mongoose.Schema({
     utilisateurId: {
@@ -79,4 +78,4 @@ const BoutiqueSchema = new mongoose.Schema({
 
 BoutiqueSchema.index({ local: 1 }, { unique: true, partialFilterExpression: { is_active: true } });
 
-module.exports =mongoose.models.Boutique || mongoose.model('Boutique', BoutiqueSchema);
+module.exports = mongoose.models.Boutique || mongoose.model('Boutique', BoutiqueSchema);
