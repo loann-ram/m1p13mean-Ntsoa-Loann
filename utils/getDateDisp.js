@@ -1,4 +1,4 @@
-const Visite = require('../model/Visite');
+const Visite = require('../Model/Visite');
 async function getDatesDispo(localId, month, year, day) {
     const monthOfDate = month || new Date().getMonth() + 1;
     const yearsOfDate = year || new Date().getFullYear();
