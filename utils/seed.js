@@ -3,9 +3,9 @@ const mongoose = require('mongoose');
 require('dotenv').config({ path: '../.env' });
 
 
-const TypeDossier = require('../model/TypeDossier');
-const DossierRequire = require('../model/DossierRequire');
-const TypeClientex = require('../model/TypeClientex');
+const TypeDossier = require('../Model/TypeDossier');
+const DossierRequire = require('../Model/DossierRequire');
+const TypeClientex = require('../Model/TypeClientex');
 
 const INDIVIDU_DOCS = [
     {
