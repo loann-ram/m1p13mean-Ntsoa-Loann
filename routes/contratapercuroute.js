@@ -3,7 +3,7 @@ const router  = express.Router();
 const jwt     = require('jsonwebtoken');
 const path    = require('path');
 const fs      = require('fs');
-const ReponseDemande = require('../model/ResponseDm');
+const ReponseDemande = require('../Model/ResponseDm');
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ROUTE A — Générer un token temporaire (1 min) pour accéder au PDF
